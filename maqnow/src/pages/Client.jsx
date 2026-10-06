@@ -130,7 +130,7 @@ function Requests({ requests }) {
   return (
     <>
       <PageHead title="Solicitudes" sub="Cada solicitud llega a todos los proveedores compatibles con tu obra."><NewBtn /></PageHead>
-      <div className="filters">{[['todas', 'Todas'], ['abiertas', 'Abiertas'], ['aceptada', 'Aceptadas'], ['cancelada', 'Canceladas']].map(([k, l]) => <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
+      <div className="filters">{[['todas', 'Todas'], ['abiertas', 'Abiertas'], ['aceptada', 'Aceptadas'], ['cancelada', 'Canceladas']].map(([k, l]) => <button key={k} aria-pressed={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
       {list.length === 0 ? <Empty action={<NewBtn />}>No hay solicitudes en esta vista.</Empty> : (
         <div className="list">
           {list.map((r) => (
@@ -185,7 +185,7 @@ function RequestDetail({ s, id, requests }) {
       {req.status !== 'cancelada' && <Stepline stages={STAGES} current={stageIndex(req, rental)} />}
 
       <section className="card progress-card">
-        <div className="progress-top">
+        <div className="progress-top" role="status">
           {waiting.some((c) => c.auto) && s.settings.autoRespond && open ? <Loader size={18} className="spin" /> : <Check size={18} />}
           <b>{req.contacted.length} proveedores contactados, {req.offers.length} respuestas</b>
           <span>{ranked.length} con disponibilidad{noStock.length ? `, ${noStock.length} sin máquina libre` : ''}{waiting.length ? `, ${waiting.length} pendientes` : ''}</span>
@@ -204,7 +204,7 @@ function RequestDetail({ s, id, requests }) {
       {ranked.length > 0 && (
         <>
           <Card title={showAll ? `Las ${ranked.length} ofertas con disponibilidad` : `Las ${Math.min(TOP_OFFERS, ranked.length)} mejores ofertas`} action={<div className="legend"><i className="sw sw-a" /> Alquiler <i className="sw sw-b" /> Transporte</div>}>
-            <div className="cmp-chart">
+            <div className="cmp-chart" role="img" aria-label={`Coste total por oferta: ${top.map((o) => `${o.provider.name} ${eur(o.total)}, ${o.score} puntos`).join('; ')}`}>
               {top.map((o, i) => (
                 <div className="cmp-row" key={o.providerId} style={{ '--d': `${i * 90}ms` }}>
                   <span className="cmp-name">{i === 0 && !showAll && <Trophy size={14} />} {o.provider.name}</span>
@@ -225,9 +225,9 @@ function RequestDetail({ s, id, requests }) {
               <table className="cmp-table">
                 <thead>
                   <tr>
-                    <th></th>
+                    <th scope="col"><span className="sr-only">Concepto</span></th>
                     {top.map((o, i) => (
-                      <th key={o.providerId} className={i === 0 && !showAll ? 'best' : ''}>
+                      <th key={o.providerId} scope="col" className={i === 0 && !showAll ? 'best' : ''}>
                         {tagOf(o, i) && <Badge tone={i === 0 && !showAll ? 'ok' : 'info'}>{tagOf(o, i)}</Badge>}
                         <b>{o.provider.name}</b><small>{o.provider.scope} · {o.provider.city}</small>
                       </th>
@@ -269,7 +269,7 @@ function RequestDetail({ s, id, requests }) {
 function Row({ label, top, cell, strong }) {
   return (
     <tr className={strong ? 'strong' : ''}>
-      <th scope="row">{label}</th>
+      <th scope="row">{label || <span className="sr-only">Acción</span>}</th>
       {top.map((o) => <td key={o.providerId}>{cell(o)}</td>)}
     </tr>
   );
@@ -306,7 +306,7 @@ function Rentals({ s, rentals }) {
   return (
     <>
       <PageHead title="Alquileres" sub="Máquinas contratadas, con sus bajas, averías y documentación."><NewBtn /></PageHead>
-      <div className="filters">{[['activos', 'En curso'], ['finalizados', 'Finalizados'], ['todos', 'Todos']].map(([k, l]) => <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
+      <div className="filters">{[['activos', 'En curso'], ['finalizados', 'Finalizados'], ['todos', 'Todos']].map(([k, l]) => <button key={k} aria-pressed={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
       {list.length === 0 ? <Empty action={<NewBtn />}>Cuando aceptes una oferta, el alquiler aparecerá aquí.</Empty> : (
         <div className="list">
           {list.map((r) => (

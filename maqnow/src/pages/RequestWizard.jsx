@@ -95,7 +95,7 @@ export function RequestWizard({ s, clientId, onAssistant }) {
           </Field>
           <div className="pick-grid">
             {FAMILIES.map((f) => (
-              <button key={f.id} type="button" className={`pick ${cur.family === f.id ? 'on' : ''}`} onClick={() => setCur({ family: f.id, type: '', specs: {}, qty: 1 })}>
+              <button key={f.id} type="button" aria-pressed={cur.family === f.id} className={`pick ${cur.family === f.id ? 'on' : ''}`} onClick={() => setCur({ family: f.id, type: '', specs: {}, qty: 1 })}>
                 <Photo src={FAMILY_IMG[f.id]} alt=""><FamilyIcon id={f.id} size={26} /></Photo>
                 <b>{f.name}</b>
               </button>
@@ -105,12 +105,12 @@ export function RequestWizard({ s, clientId, onAssistant }) {
             <div className="config">
               <div>
                 <span className="config-label">Tipo</span>
-                <div className="chips">{fam.types.map((t) => <button key={t} type="button" className={cur.type === t ? 'on' : ''} onClick={() => setCur({ ...cur, type: t })}>{t}</button>)}</div>
+                <div className="chips">{fam.types.map((t) => <button key={t} type="button" aria-pressed={cur.type === t} className={cur.type === t ? 'on' : ''} onClick={() => setCur({ ...cur, type: t })}>{t}</button>)}</div>
               </div>
               {cur.type && fam.fields.map((f) => (
                 <div key={f.id}>
                   <span className="config-label">{f.label}</span>
-                  <div className="chips">{f.options.map((o) => <button key={o} type="button" className={cur.specs[f.id] === o ? 'on' : ''} onClick={() => setCur({ ...cur, specs: { ...cur.specs, [f.id]: o } })}>{o}</button>)}</div>
+                  <div className="chips">{f.options.map((o) => <button key={o} type="button" aria-pressed={cur.specs[f.id] === o} className={cur.specs[f.id] === o ? 'on' : ''} onClick={() => setCur({ ...cur, specs: { ...cur.specs, [f.id]: o } })}>{o}</button>)}</div>
                 </div>
               ))}
               {cur.type && (

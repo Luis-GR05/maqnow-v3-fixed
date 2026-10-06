@@ -5,8 +5,10 @@ import { useSyncExternalStore } from 'react';
 import { FAMILIES, familyById, listPrice, itemLabel } from '../data/catalog';
 import { PROVIDERS, BRANDS, DOCS } from '../data/providers';
 import { addDays, todayISO, monthKey } from './format';
+import { areaOf, isStaff, STAFF } from './roles';
+import { authMessage, sb, supabaseEnabled } from './supabase';
 
-const KEY = 'maqnow-demo-v3';
+const KEY = 'maqnow-demo-v4';
 export const MAX_CONTACTED = 10; // "hasta 10 ofertas con un solo click"
 export const TOP_OFFERS = 5; // comparativo de las 5 mejores
 export const IVA = 0.21;
@@ -35,8 +37,9 @@ export const providerById = (id, s) => provs(s).find((p) => p.id === id) || { id
 export function eligibleProviders(req, s) {
   const fams = [...new Set(req.items.map((i) => i.family))];
   const covers = (p) => p.scope === 'Nacional' || (p.provinces || []).includes(req.province);
-  let list = provs(s).filter((p) => covers(p) && fams.every((f) => p.families.includes(f)));
-  if (list.length < 3) list = provs(s).filter((p) => covers(p) && fams.some((f) => p.families.includes(f)));
+  const pool = provs(s).filter((p) => p.status !== 'pendiente' && covers(p)); // solo proveedores homologados
+  let list = pool.filter((p) => fams.every((f) => p.families.includes(f)));
+  if (list.length < 3) list = pool.filter((p) => fams.some((f) => p.families.includes(f)));
   return list.sort((a, b) => b.rating * 20 + b.reliability - (a.rating * 20 + a.reliability)).slice(0, MAX_CONTACTED);
 }
 
@@ -180,7 +183,7 @@ function seed() {
     seq: { req: 240, rental: 118, inc: 30, client: 4, site: 0, machine: 480, user: 0, prov: 0 },
     settings: { autoRespond: true },
     session: null, users: [],
-    providers: PROVIDERS.map((p) => ({ ...p, contactName: '', phone: '', email: '', plan: 'Gratis' })),
+    providers: PROVIDERS.map((p) => ({ ...p, contactName: '', phone: '', email: '', plan: 'Gratis', status: 'homologado' })),
     clients: [
       { id: 'CLI-001', name: 'Reformas y Obras Litoral S.L.', cif: 'B00000001', contact: 'Responsable de compras', phone: '600 000 001', email: 'compras@ejemplo.es', payment: 'Transferencia a 30 días', creditLimit: 12000, avgPayDays: 34, since: '2026-03-10' },
       { id: 'CLI-002', name: 'Construcciones Guadalhorce S.A.', cif: 'A00000002', contact: 'Jefe de obra', phone: '600 000 002', email: 'obra@ejemplo.es', payment: 'Confirming', creditLimit: 30000, avgPayDays: 58, since: '2026-02-01' },
@@ -275,6 +278,34 @@ async function hashPass(email, password) {
   return `x${h}`;
 }
 
+/* ---------- cuentas ---------- */
+// Crea (o recupera) el usuario y, si hace falta, su empresa cliente o su ficha de proveedor
+function findOrCreateUser(s, f) {
+  let user = s.users.find((u) => (f.remoteId && u.remoteId === f.remoteId) || u.email === f.email);
+  if (user) { if (f.remoteId) { user.remoteId = f.remoteId; user.role = f.role; } return user; }
+  user = { id: `USR-${pad(++s.seq.user, 3)}`, name: (f.name || '').trim(), email: f.email, passHash: f.passHash, remoteId: f.remoteId, role: f.role, active: true, createdAt: Date.now() };
+  const company = (f.company || f.name || f.email).trim();
+  if (f.role === 'proveedor') {
+    const p = {
+      id: `prv${++s.seq.prov}`, name: company, scope: 'Local', city: f.city || 'Málaga', province: f.province || 'Málaga', km: 10, provinces: [f.province || 'Málaga'],
+      families: f.families?.length ? f.families : FAMILIES.map((x) => x.id), rating: 4, responseMin: 30, assistanceH: 4, reliability: 85, priceFactor: 1,
+      payment: 'Transferencia a 30 días', commission: 5, manual: true, contactName: user.name, phone: f.phone || '', email: f.email, plan: 'Gratis',
+      status: 'pendiente', // no recibe solicitudes hasta que MAQNOW lo homologa
+    };
+    s.providers.push(p);
+    user.providerId = p.id;
+  } else if (f.role === 'cliente') {
+    const c = { id: `CLI-${pad(++s.seq.client, 3)}`, name: company, cif: f.cif || '', contact: user.name, phone: f.phone || '', email: f.email, payment: 'Transferencia a 30 días', creditLimit: 6000, avgPayDays: 30, since: todayISO() };
+    s.clients.push(c);
+    user.clientId = c.id;
+  }
+  s.users.push(user);
+  return user;
+}
+function openSession(s, user) {
+  s.session = { guest: false, role: user.role, userId: user.id, clientId: user.clientId, providerId: user.providerId, name: user.name, email: user.email };
+}
+
 /* ---------- acciones ---------- */
 export const actions = {
   tick() {
@@ -292,44 +323,81 @@ export const actions = {
     }));
   },
 
-  /* sesión y usuarios (locales a este navegador) */
+  /* sesión, usuarios y roles */
   enterGuest(role = 'cliente') {
     mutate((s) => { s.session = { guest: true, role, clientId: GUEST_CLIENT, providerId: s.demoProviderId || GUEST_PROVIDER, name: 'Invitado', email: '' }; });
   },
   switchRole(role) { mutate((s) => { if (s.session?.guest) s.session.role = role; }); },
   setGuestProvider(id) { mutate((s) => { if (s.session?.guest) s.session.providerId = id; }); },
-  logout() { mutate((s) => { s.session = null; }); },
+  logout() {
+    if (supabaseEnabled) sb().then((c) => c.auth.signOut()).catch(() => {});
+    mutate((s) => { s.session = null; });
+  },
+  // Devuelve { error } o { info } (p. ej. "revisa tu correo") o {} si ha entrado
   async register(f) {
     const email = f.email.trim().toLowerCase();
-    if (state.users.some((u) => u.email === email)) return 'Ya existe una cuenta con ese email. Inicia sesión.';
+    if (!['cliente', 'proveedor'].includes(f.role)) return { error: 'Tipo de cuenta no válido.' }; // el equipo interno lo da de alta un superadmin
+    if (supabaseEnabled) {
+      try {
+        const c = await sb();
+        const { data, error } = await c.auth.signUp({
+          email, password: f.password,
+          options: { data: { full_name: f.name.trim(), role: f.role, company: f.company.trim(), cif: f.cif || '', phone: f.phone || '', province: f.province || 'Málaga', families: f.families || [] } },
+        });
+        if (error) return { error: authMessage(error) };
+        if (!data.session) return { info: 'Te hemos enviado un email para confirmar la cuenta. Ábrelo y vuelve para entrar.' };
+        mutate((s) => { openSession(s, findOrCreateUser(s, { ...f, email, remoteId: data.user.id })); });
+        return {};
+      } catch (e) { return { error: authMessage(e) }; }
+    }
+    if (state.users.some((u) => u.email === email)) return { error: 'Ya existe una cuenta con ese email. Inicia sesión.' };
     const passHash = await hashPass(email, f.password);
-    mutate((s) => {
-      const user = { id: `USR-${pad(++s.seq.user, 3)}`, name: f.name.trim(), email, passHash, role: f.role };
-      if (f.role === 'proveedor') {
-        const p = {
-          id: `prv${++s.seq.prov}`, name: f.company.trim(), scope: 'Local', city: f.city || 'Málaga', province: f.province || 'Málaga', km: 10, provinces: [f.province || 'Málaga'],
-          families: f.families?.length ? f.families : FAMILIES.map((x) => x.id), rating: 4, responseMin: 30, assistanceH: 4, reliability: 85, priceFactor: 1,
-          payment: 'Transferencia a 30 días', commission: 5, manual: true, contactName: f.name.trim(), phone: f.phone || '', email, plan: 'Gratis',
-        };
-        s.providers.push(p);
-        user.providerId = p.id;
-      } else {
-        const c = { id: `CLI-${pad(++s.seq.client, 3)}`, name: f.company.trim(), cif: f.cif || '', contact: f.name.trim(), phone: f.phone || '', email, payment: 'Transferencia a 30 días', creditLimit: 6000, avgPayDays: 30, since: todayISO() };
-        s.clients.push(c);
-        user.clientId = c.id;
-      }
-      s.users.push(user);
-      s.session = { guest: false, role: user.role, userId: user.id, clientId: user.clientId, providerId: user.providerId, name: user.name, email };
-    });
-    return null;
+    mutate((s) => { openSession(s, findOrCreateUser(s, { ...f, email, passHash })); });
+    return {};
   },
   async login(emailRaw, password) {
     const email = emailRaw.trim().toLowerCase();
+    if (supabaseEnabled) {
+      try {
+        const c = await sb();
+        const { data, error } = await c.auth.signInWithPassword({ email, password });
+        if (error) return { error: authMessage(error) };
+        // el rol manda el de la base de datos, nunca el que diga el navegador
+        const { data: profile } = await c.from('profiles').select('full_name, role, active').eq('id', data.user.id).single();
+        if (profile && profile.active === false) { await c.auth.signOut(); return { error: 'Tu cuenta está desactivada. Habla con MAQNOW.' }; }
+        const meta = data.user.user_metadata || {};
+        mutate((s) => { openSession(s, findOrCreateUser(s, { name: profile?.full_name || meta.full_name || email, company: meta.company || email, cif: meta.cif, phone: meta.phone, province: meta.province, families: meta.families, role: profile?.role || meta.role || 'cliente', email, remoteId: data.user.id })); });
+        return {};
+      } catch (e) { return { error: authMessage(e) }; }
+    }
     const user = state.users.find((u) => u.email === email);
-    if (!user || user.passHash !== (await hashPass(email, password))) return 'Email o contraseña incorrectos.';
-    mutate((s) => { s.session = { guest: false, role: user.role, userId: user.id, clientId: user.clientId, providerId: user.providerId, name: user.name, email }; });
-    return null;
+    if (!user || user.passHash !== (await hashPass(email, password))) return { error: 'Email o contraseña incorrectos.' };
+    if (user.active === false) return { error: 'Tu cuenta está desactivada. Habla con MAQNOW.' };
+    mutate((s) => { openSession(s, s.users.find((u) => u.id === user.id)); });
+    return {};
   },
+  async resetPassword(emailRaw) {
+    if (!supabaseEnabled) return { error: 'En el modo de demostración no hay recuperación de contraseña: crea otra cuenta o entra como invitado.' };
+    try {
+      const c = await sb();
+      const { error } = await c.auth.resetPasswordForEmail(emailRaw.trim().toLowerCase(), { redirectTo: window.location.origin + window.location.pathname });
+      return error ? { error: authMessage(error) } : { info: 'Si el email existe, recibirás un enlace para crear una contraseña nueva.' };
+    } catch (e) { return { error: authMessage(e) }; }
+  },
+  // Gestión de usuarios (solo superadmin; en Supabase lo impone además la política RLS)
+  async createStaffUser(f) {
+    if (!STAFF.includes(f.role)) return { error: 'Rol no válido.' };
+    const email = f.email.trim().toLowerCase();
+    if (state.users.some((u) => u.email === email)) return { error: 'Ya existe un usuario con ese email.' };
+    const passHash = await hashPass(email, f.password);
+    mutate((s) => { s.users.push({ id: `USR-${pad(++s.seq.user, 3)}`, name: f.name.trim(), email, passHash, role: f.role, active: true, createdAt: Date.now() }); });
+    return {};
+  },
+  setUserRole(id, role) {
+    mutate((s) => { const u = s.users.find((x) => x.id === id); if (u && isStaff(u.role) && STAFF.includes(role)) u.role = role; });
+  },
+  setUserActive(id, active) { mutate((s) => { const u = s.users.find((x) => x.id === id); if (u) u.active = active; }); },
+  approveProvider(id) { mutate((s) => { s.providers.find((p) => p.id === id).status = 'homologado'; }); },
 
   /* cliente */
   saveClient(data) { mutate((s) => { Object.assign(s.clients.find((x) => x.id === data.id), data); }); },
@@ -497,11 +565,12 @@ export function notificationsFor(s) {
   const ss = s.session;
   if (!ss) return [];
   const n = [];
-  if (ss.role === 'cliente') {
+  const area = areaOf(ss.role);
+  if (area === 'cliente') {
     s.requests.filter((r) => r.clientId === ss.clientId && r.status === 'ofertas').forEach((r) => n.push({ text: `${r.offers.filter((o) => o.available !== 'no').length} ofertas para ${itemsText(r.items)}`, href: `/app/solicitud/${r.id}`, tone: 'warn' }));
     s.incidents.filter((i) => i.status !== 'resuelta' && s.rentals.some((r) => r.id === i.rentalId && r.clientId === ss.clientId)).forEach((i) => n.push({ text: `Avería ${i.id}: ${i.status}`, href: '/app/averias', tone: 'bad' }));
     movements(s, (r) => r.clientId === ss.clientId).filter((m) => m.date <= addDays(todayISO(), 3)).forEach((m) => n.push({ text: `${m.kind} el ${m.date.slice(8)}/${m.date.slice(5, 7)}: ${itemsText(m.rental.items)}`, href: '/app/entregas', tone: 'info' }));
-  } else if (ss.role === 'proveedor') {
+  } else if (area === 'proveedor') {
     s.requests.filter((r) => ['buscando', 'ofertas'].includes(r.status) && r.contacted.some((c) => c.providerId === ss.providerId) && !r.offers.some((o) => o.providerId === ss.providerId)).forEach((r) => n.push({ text: `Nueva solicitud: ${itemsText(r.items)} en ${r.municipio}`, href: '/app/solicitudes', tone: 'warn' }));
     s.rentals.filter((r) => r.providerId === ss.providerId && r.status === 'baja solicitada').forEach((r) => n.push({ text: `Recogida pedida: ${r.id}`, href: '/app/alquileres', tone: 'info' }));
     s.incidents.filter((i) => i.status === 'abierta' && s.rentals.some((r) => r.id === i.rentalId && r.providerId === ss.providerId)).forEach((i) => n.push({ text: `Incidencia abierta ${i.id}: ${i.type}`, href: '/app/incidencias', tone: 'bad' }));
@@ -512,4 +581,16 @@ export function notificationsFor(s) {
     if (pend) n.push({ text: `${pend} comisiones por liquidar`, href: '/app/comisiones', tone: 'info' });
   }
   return n;
+}
+
+// Con Supabase: comprueba al arrancar que la sesión guardada sigue viva y escucha el cierre de sesión
+export async function initAuth() {
+  if (!supabaseEnabled) return;
+  try {
+    const c = await sb();
+    const { data } = await c.auth.getSession();
+    const drop = () => { if (state.session && !state.session.guest) mutate((s) => { s.session = null; }); };
+    if (!data.session) drop();
+    c.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') drop(); });
+  } catch { /* sin conexión: se mantiene la sesión local */ }
 }

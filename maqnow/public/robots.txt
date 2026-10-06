@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://luis-gr05.github.io/maqnow-v3-fixed/sitemap.xml

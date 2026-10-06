@@ -70,6 +70,14 @@ export function Assistant({ open, onClose }) {
   const [text, setText] = useState('');
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [msgs, open]);
+  // Escape cierra y el foco vuelve al botón que lo abrió
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.activeElement;
+    const on = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', on);
+    return () => { window.removeEventListener('keydown', on); prev?.focus?.(); };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
@@ -109,6 +117,7 @@ export function Assistant({ open, onClose }) {
     const ss = getState().session;
     if (!ss) actions.enterGuest('cliente');
     else if (ss.guest && ss.role !== 'cliente') actions.switchRole('cliente');
+    else if (!ss.guest && ss.role !== 'cliente') { onClose(); return go('/app/inicio'); }
     if (a.draft) {
       setDraft({ items: [slotsToItem(a.draft)], municipio: a.draft.municipio, province: a.draft.province, start: a.draft.start, days: a.draft.days, step: 2 });
       go('/app/nueva');
@@ -118,14 +127,14 @@ export function Assistant({ open, onClose }) {
   const last = msgs[msgs.length - 1];
 
   return (
-    <aside className="assistant" role="dialog" aria-label="Asistente MAQNOW">
-      <header>
-        <MessageCircle size={18} />
+    <div className="assistant" role="dialog" aria-modal="false" aria-label="Asistente MAQNOW">
+      <div className="assistant-head">
+        <MessageCircle size={18} aria-hidden />
         <b>Asistente MAQNOW</b>
         <button onClick={() => { setMsgs(HELLO); setSlots({}); setPending(null); }} className="link">Reiniciar</button>
-        <button onClick={onClose} aria-label="Cerrar asistente"><X size={18} /></button>
-      </header>
-      <div className="assistant-body">
+        <button onClick={onClose} aria-label="Cerrar asistente"><X size={18} aria-hidden /></button>
+      </div>
+      <div className="assistant-body" role="log" aria-live="polite" aria-label="Conversación">
         {msgs.map((m, i) => (
           <div key={i} className={`msg ${m.from}`}>
             <p>{m.text}</p>
@@ -138,8 +147,8 @@ export function Assistant({ open, onClose }) {
       </div>
       <form onSubmit={send}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Escribe aquí…" aria-label="Mensaje" autoFocus />
-        <button className="btn btn-primary" aria-label="Enviar"><Send size={16} /></button>
+        <button className="btn btn-primary" aria-label="Enviar"><Send size={16} aria-hidden /></button>
       </form>
-    </aside>
+    </div>
   );
 }

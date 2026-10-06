@@ -2,17 +2,109 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>MAQNOW: alquiler de maquinaria, una solicitud y las 5 mejores ofertas</title>
+    <meta name="description" content="Pide oferta de alquiler de maquinaria a todos los proveedores con una sola solicitud y compara las 5 mejores por disponibilidad, precio, transporte y servicio técnico. Gratis para quien alquila." />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
     <meta name="theme-color" content="#17191c" />
-    <meta name="description" content="MAQNOW: pide oferta a todos los proveedores de alquiler de maquinaria con un solo click y compara las 5 mejores por disponibilidad, precio, transporte y servicio técnico." />
-    <link rel="icon" href="./logo-mark.svg" />
+    <meta name="color-scheme" content="light" />
+    <meta name="application-name" content="MAQNOW" />
+    <meta name="author" content="MAQNOW" />
+    <meta name="geo.region" content="ES-MA" />
+    <meta name="geo.placename" content="Málaga" />
+    <link rel="canonical" href="https://luis-gr05.github.io/maqnow-v3-fixed/" />
+    <link rel="alternate" hreflang="es" href="https://luis-gr05.github.io/maqnow-v3-fixed/" />
+
+    <!-- Iconos y aplicación instalable -->
+    <link rel="icon" href="./logo-mark.svg" type="image/svg+xml" />
+    <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="MAQNOW" />
+
+    <!-- Compartir en redes y mensajería -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MAQNOW" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:url" content="https://luis-gr05.github.io/maqnow-v3-fixed/" />
+    <meta property="og:title" content="MAQNOW: una solicitud y las 5 mejores ofertas de alquiler de maquinaria" />
+    <meta property="og:description" content="Pedimos oferta a todos los proveedores con un solo click y te comparamos disponibilidad, precio, transporte y servicio técnico. Gratis para quien alquila." />
+    <meta property="og:image" content="https://luis-gr05.github.io/maqnow-v3-fixed/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MAQNOW. Una solicitud. Las 5 mejores ofertas." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MAQNOW: una solicitud y las 5 mejores ofertas de alquiler de maquinaria" />
+    <meta name="twitter:description" content="Pedimos oferta a todos los proveedores con un solo click y te hacemos el comparativo." />
+    <meta name="twitter:image" content="https://luis-gr05.github.io/maqnow-v3-fixed/og-image.png" />
+
+    <!-- Rendimiento: conexiones anticipadas, foto de portada y tipografía sin bloquear el pintado -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet" />
-    <title>MAQNOW — Alquiler de maquinaria: una solicitud, las 5 mejores ofertas</title>
+    <link rel="preload" as="image" fetchpriority="high"
+      href="https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1800&q=72"
+      imagesrcset="https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=640&q=72 640w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1000&q=72 1000w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1400&q=72 1400w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1800&q=72 1800w"
+      imagesizes="(max-width: 900px) 100vw, 56vw" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" /></noscript>
+
+    <!-- Datos estructurados para buscadores -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://luis-gr05.github.io/maqnow-v3-fixed/#organizacion",
+            "name": "MAQNOW",
+            "url": "https://luis-gr05.github.io/maqnow-v3-fixed/",
+            "logo": "https://luis-gr05.github.io/maqnow-v3-fixed/icon-512.png",
+            "slogan": "Busca. Compara. Alquila.",
+            "areaServed": { "@type": "AdministrativeArea", "name": "Málaga" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://luis-gr05.github.io/maqnow-v3-fixed/#web",
+            "url": "https://luis-gr05.github.io/maqnow-v3-fixed/",
+            "name": "MAQNOW",
+            "inLanguage": "es",
+            "publisher": { "@id": "https://luis-gr05.github.io/maqnow-v3-fixed/#organizacion" }
+          },
+          {
+            "@type": "Service",
+            "name": "Comparador de alquiler de maquinaria",
+            "serviceType": "Intermediación en alquiler de maquinaria de construcción",
+            "provider": { "@id": "https://luis-gr05.github.io/maqnow-v3-fixed/#organizacion" },
+            "areaServed": { "@type": "AdministrativeArea", "name": "Málaga" },
+            "description": "Una sola solicitud llega a todos los proveedores compatibles y se comparan las mejores ofertas por disponibilidad, precio, transporte y servicio técnico.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR", "description": "Gratis para quien alquila" }
+          }
+        ]
+      }
+    </script>
+    <style>
+      /* Estilo mínimo mientras llega el resto: evita el fogonazo blanco */
+      body { margin: 0; background: #17191c; }
+      .boot { min-height: 100vh; color: #fff; font: 18px/1.5 system-ui, sans-serif; padding: 12vh 6vw; max-width: 760px; }
+      .boot h1 { font-size: clamp(34px, 6vw, 64px); line-height: 1; margin: 0 0 16px; text-transform: uppercase; }
+      .boot a { color: #ffc400; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Contenido de respaldo: lo ven los buscadores y quien no tenga JavaScript. La aplicación lo sustituye al cargar. -->
+      <div class="boot">
+        <h1>Ahorra tiempo y dinero en el alquiler de maquinaria</h1>
+        <p>Pedimos oferta a todos los proveedores en un solo click y te hacemos el comparativo de las 5 mejores ofertas, por disponibilidad, precio, transporte y servicio técnico. Cualificamos proveedores para tu tranquilidad. Además tendrás tu CRM con toda la información y gestiones realizadas.</p>
+        <h2>Maquinaria</h2>
+        <p>Plataformas elevadoras, movimiento de tierras, carretillas y manipuladores telescópicos, compactación, generadores y energía, herramientas y pequeña maquinaria, demolición, bombas y equipos auxiliares.</p>
+        <h2>Para proveedores</h2>
+        <p>Recibe solicitudes concretas de tu zona y tu especialidad. Alta gratuita y comisión solo si se cierra el alquiler.</p>
+        <noscript><p>Para pedir ofertas necesitas activar JavaScript en tu navegador.</p></noscript>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

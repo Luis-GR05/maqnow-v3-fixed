@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
-import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing } from 'lucide-react';
+import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing, UserPlus, X } from 'lucide-react';
 import { PAYMENT_METHODS } from '../data/catalog';
 import { actions, clientRisk, invoicesOf, itemsText, providerById, providerStats, rankOffers, spendByMonth, stageIndex, STAGES } from '../lib/store';
 import { addDays, eur, fmtDate, fmtDay, fmtMin, monthLabel, todayISO } from '../lib/format';
 import { Badge, Bars, Card, Columns, Empty, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
 import { parseRequest, slotsToItem } from '../components/Assistant';
+import { ROLES, STAFF, PERMISSIONS, can } from '../lib/roles';
 
 export function AdminPages({ s, page, id }) {
+  const role = s.session.role;
   switch (page) {
     case 'agente': return <Agent s={s} />;
     case 'solicitudes': return <Requests s={s} />;
-    case 'solicitud': return <RequestLog s={s} id={id} />;
-    case 'clientes': return <Clients s={s} />;
-    case 'proveedores': return <Providers s={s} />;
+    case 'solicitud': return <RequestLog s={s} id={id} role={role} />;
+    case 'clientes': return <Clients s={s} role={role} />;
+    case 'proveedores': return <Providers s={s} role={role} />;
     case 'alquileres': return <Rentals s={s} />;
-    case 'incidencias': return <Incidents s={s} />;
+    case 'incidencias': return <Incidents s={s} role={role} />;
     case 'comisiones': return <Commissions s={s} />;
+    case 'usuarios': return <Users s={s} />;
     case 'ajustes': return <Settings s={s} />;
     default: return <Dashboard s={s} />;
   }
@@ -44,7 +47,7 @@ function Dashboard({ s }) {
   return (
     <>
       <PageHead title="Panel de operaciones" sub="Lo que el gerente necesita ver al abrir el CRM.">
-        <div className="filters tight">{[[1, 'Hoy'], [30, '30 días'], [0, 'Todo']].map(([d, l]) => <button key={d} className={period === d ? 'on' : ''} onClick={() => setPeriod(d)}>{l}</button>)}</div>
+        <div className="filters tight">{[[1, 'Hoy'], [30, '30 días'], [0, 'Todo']].map(([d, l]) => <button key={d} aria-pressed={period === d} className={period === d ? 'on' : ''} onClick={() => setPeriod(d)}>{l}</button>)}</div>
       </PageHead>
       <div className="kpis">
         <Kpi label="Solicitudes" value={reqs.length} href="/app/solicitudes" />
@@ -151,7 +154,7 @@ function Requests({ s }) {
   return (
     <>
       <PageHead title="Solicitudes" sub="Cada solicitud, con los proveedores contactados y su oferta seleccionada.">
-        <div className="filters tight">{[['tablero', 'Tablero'], ['lista', 'Lista']].map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>)}</div>
+        <div className="filters tight">{[['tablero', 'Tablero'], ['lista', 'Lista']].map(([k, l]) => <button key={k} aria-pressed={view === k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>)}</div>
       </PageHead>
       {view === 'tablero' ? (
         <div className="board">
@@ -188,7 +191,7 @@ function Requests({ s }) {
   );
 }
 
-function RequestLog({ s, id }) {
+function RequestLog({ s, id, role }) {
   const r = s.requests.find((x) => x.id === id);
   if (!r) return <Empty action={<a className="btn btn-ghost" href="#/app/solicitudes">Volver a solicitudes</a>}>No encontramos esa solicitud.</Empty>;
   const rental = s.rentals.find((x) => x.requestId === r.id);
@@ -214,7 +217,7 @@ function RequestLog({ s, id }) {
       {r.status !== 'cancelada' && <Stepline stages={STAGES} current={stageIndex(r, rental)} />}
       <div className="grid-main">
         <div>
-          <Card title="Registro del agente" action={waiting.length > 0 && ['buscando', 'ofertas'].includes(r.status) && <button className="btn btn-ghost btn-sm" onClick={() => actions.remind(r.id)}><BellRing size={14} /> Reclamar a {waiting.length}</button>}>
+          <Card title="Registro del agente" action={can(role, 'solicitudes.reclamar') && waiting.length > 0 && ['buscando', 'ofertas'].includes(r.status) && <button className="btn btn-ghost btn-sm" onClick={() => actions.remind(r.id)}><BellRing size={14} /> Reclamar a {waiting.length}</button>}>
             <ol className="log">
               {log.map(([min, text], i) => <li key={i}><time>{at(min)}</time><i><Check size={11} /></i><span>{text}</span></li>)}
               {waiting.length > 0 && ['buscando', 'ofertas'].includes(r.status) && <li className="wait"><time>ahora</time><i><Clock size={11} /></i><span>Faltan {waiting.length} respuestas: {waiting.map((c) => providerById(c.providerId, s).name).join(', ')}</span></li>}
@@ -242,8 +245,9 @@ function RequestLog({ s, id }) {
 }
 
 /* ---------- Clientes y riesgo ---------- */
-function Clients({ s }) {
+function Clients({ s, role }) {
   const [editing, setEditing] = useState(null);
+  const canEdit = can(role, 'clientes.editar');
   return (
     <>
       <PageHead title="Clientes y riesgo" sub="El riesgo se calcula con el plazo medio de pago, las facturas vencidas, el consumo del límite de crédito y la forma de pago." />
@@ -260,7 +264,7 @@ function Clients({ s }) {
               <td><div className={`index ${k.usage > 0.8 ? 'bad' : k.usage > 0.5 ? 'warn' : ''}`}><i style={{ width: `${Math.min(100, k.usage * 100)}%` }} /><span>{Math.round(k.usage * 100)} %</span></div></td>
               <td className="num">{c.avgPayDays} días</td><td className="num">{eur(k.overdue)}</td><td className="num">{eur(k.volume)}</td>
               <td><Status value={k.level} />{k.reasons.length > 0 && <small>{k.reasons.join(', ')}</small>}</td>
-              <td><button className="btn btn-ghost btn-sm" onClick={() => setEditing(ed ? null : c.id)}>{ed ? 'Hecho' : 'Editar'}</button></td>
+              <td>{canEdit && <button className="btn btn-ghost btn-sm" onClick={() => setEditing(ed ? null : c.id)}>{ed ? 'Hecho' : 'Editar'}</button>}</td>
             </tr>
           );
         })}
@@ -270,24 +274,36 @@ function Clients({ s }) {
 }
 
 /* ---------- Proveedores ---------- */
-function Providers({ s }) {
+function Providers({ s, role }) {
   const [open, setOpen] = useState(null);
-  const rows = s.providers.map((p) => ({ p, st: providerStats(s, p) })).sort((a, b) => b.st.index - a.st.index);
+  const canApprove = can(role, 'proveedores.homologar');
+  const rows = s.providers.map((p) => ({ p, st: providerStats(s, p) })).sort((a, b) => (b.p.status === 'pendiente') - (a.p.status === 'pendiente') || b.st.index - a.st.index);
+  const pending = rows.filter((x) => x.p.status === 'pendiente').length;
+  const toggle = (id) => setOpen(open === id ? null : id);
   return (
     <>
       <PageHead title="Proveedores" sub="Índice interno, no visible para el cliente: disponibilidad 30 %, precio 25 %, tiempo de respuesta 20 %, fiabilidad 15 %, incidencias 10 %. Decide a quién se contacta primero." />
-      <Table head={[{ num: '#' }, 'Proveedor', 'Ámbito', 'Índice', 'Valoración', 'Respuesta media', { num: 'Respuestas' }, { num: 'Ganadas' }, { num: 'Incidencias' }, { num: 'Volumen' }, { num: 'Comisión' }]}>
+      {pending > 0 && <div className="notice warn" role="status">{pending} {pending === 1 ? 'proveedor espera' : 'proveedores esperan'} homologación. Hasta entonces no reciben solicitudes.</div>}
+      <Table head={[{ num: '#' }, 'Proveedor', 'Ámbito', 'Índice', 'Valoración', 'Respuesta media', { num: 'Respuestas' }, { num: 'Ganadas' }, { num: 'Incidencias' }, { num: 'Volumen' }, { num: 'Comisión' }, '']}>
         {rows.map(({ p, st }, i) => (
           <React.Fragment key={p.id}>
-            <tr className="clickable" onClick={() => setOpen(open === p.id ? null : p.id)}>
-              <td className="num">{i + 1}</td><td><b>{p.name}</b>{p.manual && <> <Badge tone="info">Registrado</Badge></>}</td><td>{p.scope} · {p.city}</td>
+            <tr>
+              <td className="num">{i + 1}</td>
+              <td><b>{p.name}</b> {p.status === 'pendiente' ? <Badge tone="warn">Pendiente de homologar</Badge> : p.manual ? <Badge tone="info">Registrado</Badge> : null}</td>
+              <td>{p.scope} · {p.city}</td>
               <td><div className="index"><i style={{ width: `${st.index}%` }} /><span>{st.index}</span></div></td>
               <td><Stars value={st.rating} /> {st.rating.toFixed(1).replace('.', ',')}</td>
               <td>{fmtMin(st.avgResp)}</td><td className="num">{st.responded}/{st.contacted}</td><td className="num">{st.won}</td><td className="num">{st.incidents}</td>
               <td className="num">{eur(st.volume)}</td><td className="num">{eur(st.commission)} ({p.commission} %)</td>
+              <td>
+                <div className="row-btns">
+                  {p.status === 'pendiente' && canApprove && <button className="btn btn-primary btn-sm" onClick={() => actions.approveProvider(p.id)}><Check size={14} aria-hidden /> Homologar</button>}
+                  <button className="btn btn-ghost btn-sm" onClick={() => toggle(p.id)} aria-expanded={open === p.id}>{open === p.id ? 'Ocultar ficha' : 'Ver ficha'}</button>
+                </div>
+              </td>
             </tr>
             {open === p.id && (
-              <tr className="detail"><td colSpan="11">
+              <tr className="detail"><td colSpan="12">
                 <div className="detail-grid">
                   <div><b>Especialidades</b><p>{p.families.join(', ')}</p></div>
                   <div><b>Zona</b><p>{p.scope === 'Nacional' ? 'Toda España' : (p.provinces || []).join(', ')}</p></div>
@@ -323,7 +339,8 @@ function Rentals({ s }) {
 }
 
 /* ---------- Incidencias ---------- */
-function Incidents({ s }) {
+function Incidents({ s, role }) {
+  const canManage = can(role, 'incidencias.gestionar');
   return (
     <>
       <PageHead title="Incidencias" sub="Nivel 1 consulta, nivel 2 incidencia, nivel 3 avería urgente. Se avisa al proveedor, a administración y al responsable." />
@@ -335,9 +352,11 @@ function Incidents({ s }) {
               <td className="code">{i.id}</td><td className="code">{i.rentalId}</td><td>{clientName(s, r.clientId)}</td><td>{providerById(r.providerId, s).name}</td>
               <td>{i.type}</td><td><Badge tone={i.level === 3 ? 'bad' : i.level === 2 ? 'warn' : 'neutral'}>{['', 'Consulta', 'Incidencia', 'Avería urgente'][i.level]}</Badge></td><td>{i.desc || '—'}</td>
               <td>
-                <select className="mini" value={i.status} onChange={(e) => actions.setIncidentStatus(i.id, e.target.value)} aria-label="Estado de la incidencia">
+{canManage ? (
+                  <select className="mini" value={i.status} onChange={(e) => actions.setIncidentStatus(i.id, e.target.value)} aria-label="Estado de la incidencia">
                   <option value="abierta">Abierta</option><option value="en curso">En curso</option><option value="resuelta">Resuelta</option>
                 </select>
+                ) : <Status value={i.status} />}
               </td>
             </tr>
           );
@@ -373,6 +392,69 @@ function Commissions({ s }) {
           );
         })}
       </Table>
+    </>
+  );
+}
+
+/* ---------- Usuarios y roles ---------- */
+const ACTION_LABELS = {
+  'solicitudes.reclamar': 'Reclamar respuestas a proveedores', 'proveedores.homologar': 'Homologar proveedores', 'incidencias.gestionar': 'Gestionar incidencias',
+  'clientes.editar': 'Editar forma de pago y límite de crédito', 'comisiones.liquidar': 'Liquidar comisiones y marcar cobros', 'usuarios.gestionar': 'Crear usuarios y cambiar roles', 'ajustes.cambiar': 'Cambiar ajustes',
+};
+function Users({ s }) {
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState({ name: '', email: '', password: '', role: 'agente' });
+  const [err, setErr] = useState('');
+  const add = async (e) => {
+    e.preventDefault();
+    if (f.name.trim().length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email) || f.password.length < 8) return setErr('Indica nombre, un email válido y una contraseña de al menos 8 caracteres.');
+    const res = await actions.createStaffUser(f);
+    if (res.error) return setErr(res.error);
+    setAdding(false); setErr(''); setF({ name: '', email: '', password: '', role: 'agente' });
+    return null;
+  };
+  const company = (u) => (u.clientId ? s.clients.find((c) => c.id === u.clientId)?.name : u.providerId ? providerById(u.providerId, s).name : 'MAQNOW');
+  return (
+    <>
+      <PageHead title="Usuarios y roles" sub="Clientes y proveedores se registran solos desde la web. El equipo interno lo das de alta tú, con el rol que le corresponda.">
+        <button className="btn btn-primary" onClick={() => setAdding(!adding)}><UserPlus size={16} aria-hidden /> Añadir al equipo</button>
+      </PageHead>
+      {adding && (
+        <form className="card inline-form flat" onSubmit={add} noValidate>
+          <Field label="Nombre"><input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="off" /></Field>
+          <Field label="Email"><input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="off" /></Field>
+          <Field label="Contraseña inicial"><input type="text" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="off" /></Field>
+          <Field label="Rol"><select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>{STAFF.map((r) => <option key={r} value={r}>{ROLES[r].label}</option>)}</select></Field>
+          <button className="btn btn-primary">Crear usuario</button>
+          {err && <p className="error" role="alert" style={{ flex: '1 1 100%' }}>{err}</p>}
+        </form>
+      )}
+      <Table head={['Usuario', 'Email', 'Empresa', 'Rol', 'Alta', 'Estado', '']} empty="Todavía no hay cuentas registradas en este navegador. Crea una desde la web o añade a alguien del equipo.">
+        {s.users.map((u) => (
+          <tr key={u.id}>
+            <td><b>{u.name}</b></td><td>{u.email}</td><td>{company(u)}</td>
+            <td>{STAFF.includes(u.role)
+              ? <select className="mini" value={u.role} onChange={(e) => actions.setUserRole(u.id, e.target.value)} aria-label={`Rol de ${u.name}`}>{STAFF.map((r) => <option key={r} value={r}>{ROLES[r].label}</option>)}</select>
+              : ROLES[u.role].label}</td>
+            <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-ES') : '—'}</td>
+            <td>{u.active === false ? <Badge tone="bad">Desactivada</Badge> : <Badge tone="ok">Activa</Badge>}</td>
+            <td><button className="btn btn-ghost btn-sm" onClick={() => actions.setUserActive(u.id, u.active === false)}>{u.active === false ? 'Reactivar' : 'Desactivar'}</button></td>
+          </tr>
+        ))}
+      </Table>
+      <Card title="Qué puede hacer cada rol del equipo">
+        <div className="table-scroll">
+          <table className="matrix">
+            <thead><tr><th scope="col">Permiso</th>{STAFF.map((r) => <th scope="col" key={r}>{ROLES[r].label}</th>)}</tr></thead>
+            <tbody>
+              {Object.keys(PERMISSIONS).map((a) => (
+                <tr key={a}><th scope="row">{ACTION_LABELS[a]}</th>{STAFF.map((r) => <td key={r}>{can(r, a) ? <><Check size={16} aria-hidden /><span className="sr-only">Sí</span></> : <><X size={14} aria-hidden className="no" /><span className="sr-only">No</span></>}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <ul className="role-notes">{Object.entries(ROLES).map(([k, r]) => <li key={k}><b>{r.label}.</b> {r.desc}</li>)}</ul>
+      </Card>
     </>
   );
 }

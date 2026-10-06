@@ -27,7 +27,7 @@ export function Status({ value }) {
 
 export function Stars({ value, onChange, size = 15 }) {
   return (
-    <span className="stars" aria-label={`${Number(value).toFixed(1)} de 5`}>
+    <span className="stars" role={onChange ? 'group' : 'img'} aria-label={onChange ? 'Valoración' : `${Number(value).toFixed(1).replace('.', ',')} de 5`}>
       {[1, 2, 3, 4, 5].map((n) => {
         const on = n <= Math.round(value);
         const star = <Star size={size} fill={on ? 'currentColor' : 'none'} className={on ? 'on' : ''} />;
@@ -48,7 +48,7 @@ export function Kpi({ label, value, hint, tone, href }) {
 export function Bars({ rows, format = (v) => v }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <div className="bars">
+    <div className="bars" role="img" aria-label={rows.map((r) => `${r.label}: ${format(r.value)}`).join(', ')}>
       {rows.map((r) => (
         <div className="bar-row" key={r.label}>
           <span className="bar-label">{r.label}</span>
@@ -123,7 +123,7 @@ export function Table({ head, children, empty }) {
     <section className="card table-card">
       <div className="table-scroll">
         <table className="data">
-          <thead><tr>{head.map((h, i) => <th key={i} className={typeof h === 'object' ? 'num' : ''}>{labels[i]}</th>)}</tr></thead>
+          <thead><tr>{head.map((h, i) => <th key={i} scope="col" className={typeof h === 'object' ? 'num' : ''}>{labels[i] || <span className="sr-only">Acciones</span>}</th>)}</tr></thead>
           <tbody>{rows}</tbody>
         </table>
       </div>
@@ -151,17 +151,32 @@ export function Stepline({ stages, current }) {
   );
 }
 
+// Ventana modal accesible: atrapa el foco, se cierra con Escape y devuelve el foco al cerrarse
 export function Modal({ title, onClose, children, wide }) {
+  const ref = useRef(null);
   useEffect(() => {
-    const on = (e) => e.key === 'Escape' && onClose();
+    const prev = document.activeElement;
+    const box = ref.current;
+    const focusables = () => [...box.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')];
+    (focusables()[0] || box).focus();
+    const on = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', on);
-    return () => window.removeEventListener('keydown', on);
-  }, [onClose]);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', on); document.body.style.overflow = ''; prev?.focus?.(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-        <header><h2>{title}</h2><button className="icon-btn" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></header>
-        <div className="modal-body">{children}</div>
+      <div ref={ref} className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
+        <header><h2 id="modal-title">{title}</h2><button className="icon-btn" onClick={onClose} aria-label="Cerrar"><X size={20} aria-hidden /></button></header>
+        <div className="modal-body" tabIndex={0} role="group" aria-label="Contenido">{children}</div>
       </div>
     </div>
   );
@@ -187,12 +202,17 @@ export function Reveal({ as: Tag = 'div', className = '', delay = 0, children, .
   return <Tag ref={ref} className={`reveal ${seen ? 'in' : ''} ${className}`} style={{ transitionDelay: `${delay}ms` }} {...rest}>{children}</Tag>;
 }
 
-// Imagen con respaldo: si la foto no carga, queda el bloque de color con el icono
-export function Photo({ src, alt = '', className = '', children }) {
+// Imagen con respaldo: si la foto no carga, queda el bloque de color con el icono.
+// Para las fotos de Unsplash genera varias resoluciones y el navegador descarga la justa.
+export function srcSetFor(src, widths = [480, 800, 1200, 1600]) {
+  if (!src || !/images\.unsplash\.com/.test(src)) return undefined;
+  return widths.map((w) => `${src.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(', ');
+}
+export function Photo({ src, alt = '', className = '', sizes = '(max-width: 900px) 100vw, 50vw', eager = false, children }) {
   const [ok, setOk] = useState(!!src);
   return (
     <div className={`photo ${className} ${ok ? '' : 'no-img'}`}>
-      {ok && <img src={src} alt={alt} loading="lazy" onError={() => setOk(false)} />}
+      {ok && <img src={src} srcSet={srcSetFor(src)} sizes={sizes} alt={alt} width="1200" height="900" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setOk(false)} />}
       {children}
     </div>
   );

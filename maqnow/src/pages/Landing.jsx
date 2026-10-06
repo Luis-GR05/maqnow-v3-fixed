@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, ArrowUp, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
-import { FAMILIES } from '../data/catalog';
+import { FAMILIES, familyById } from '../data/catalog';
 import { CONTACT } from '../data/providers';
 import { IMG, FAMILY_IMG } from '../data/images';
 import { actions, getState, setDraft } from '../lib/store';
-import { FamilyIcon, Photo, Reveal, go, useInView } from '../components/ui';
+import { SITE, FAQ, SECTORS } from '../data/site';
+import { FamilyIcon, Photo, Reveal, go, srcSetFor, useInView } from '../components/ui';
 
 const HOW = [
   ['Una solicitud, todos los proveedores', 'Pedimos oferta a todos los proveedores en un solo click.'],
@@ -22,19 +23,18 @@ const RACE = [
   { name: 'Alquilador local E', km: 13, rent: 865, trans: 70, score: 85, tag: 'Entrega un día después' },
 ];
 
-const FAQ = [
-  ['¿Cuánto me cuesta usar MAQNOW?', 'Nada. Para quien alquila es gratis: pides ofertas, comparas y contratas sin coste. MAQNOW cobra una comisión al proveedor solo cuando se cierra un alquiler.'],
-  ['¿Cuánto tardan en llegar las ofertas?', 'Los proveedores reciben tu solicitud al momento. Lo habitual es tener las primeras respuestas en minutos; si alguno no contesta, se lo reclamamos nosotros.'],
-  ['¿Qué pasa si no sé qué máquina necesito?', 'Cuéntaselo al asistente con tus palabras: qué trabajo vas a hacer, dónde y cuándo. Te propone el equipo adecuado y deja la solicitud preparada.'],
-  ['¿Y si la máquina se avería en la obra?', 'Desde tu área avisas de la avería con un click. El aviso llega al proveedor y a nuestro equipo, y queda registrado con sus tiempos de respuesta.'],
-  ['¿Puedo pedir varias máquinas para la misma obra?', 'Sí. Añades todas las que necesites a una única solicitud y los proveedores ofertan el conjunto.'],
-  ['Soy alquilador, ¿cómo entro?', 'Date de alta gratis como proveedor. Recibirás solo solicitudes de tu zona y de tu tipo de maquinaria, y respondes con disponibilidad y precio en un minuto.'],
-];
-
 export function Landing({ onAssistant }) {
   const [menu, setMenu] = useState(false);
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(t); }, []);
+  const [sector, setSector] = useState(SECTORS[0].id);
+  useEffect(() => {
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) });
+    document.head.appendChild(el);
+    return () => el.remove();
+  }, []);
 
   const start = (family) => {
     const ss = getState().session;
@@ -49,8 +49,8 @@ export function Landing({ onAssistant }) {
   return (
     <div className={`landing ${ready ? 'ready' : ''}`}>
       <header className="lnav">
-        <a className="brand" href="#/"><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" />MAQ<span>NOW</span></a>
-        <nav className={menu ? 'open' : ''} onClick={() => setMenu(false)}>
+        <a className="brand" href="#/" aria-label={`${SITE.name}, inicio`}><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width="28" height="28" />MAQ<span>NOW</span></a>
+        <nav id="menu-web" aria-label="Secciones de la web" className={menu ? 'open' : ''} onClick={() => setMenu(false)}>
           <a href="#como">Cómo funciona</a>
           <a href="#maquinaria">Maquinaria</a>
           <a href="#empresas">Empresas</a>
@@ -61,14 +61,15 @@ export function Landing({ onAssistant }) {
           {session
             ? <a className="btn btn-primary btn-sm" href="#/app/inicio">Ir a mi área</a>
             : <><a className="lnav-link" href="#/acceso">Entrar</a><a className="btn btn-primary btn-sm" href="#/registro">Crear cuenta</a></>}
-          <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label="Menú">{menu ? <X /> : <Menu />}</button>
+          <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label={menu ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={menu} aria-controls="menu-web">{menu ? <X aria-hidden /> : <Menu aria-hidden />}</button>
         </div>
       </header>
 
+      <main id="contenido" tabIndex={-1}>
       {/* Portada: foto + acciones a la izquierda, "cómo lo hacemos" a la derecha */}
       <section className="hero">
         <div className="hero-photo">
-          <img src={IMG.hero} alt="Parque de maquinaria de alquiler" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <img src={IMG.hero} srcSet={srcSetFor(IMG.hero, [640, 1000, 1400, 1800])} sizes="(max-width: 900px) 100vw, 56vw" alt="Parque de maquinaria de alquiler" width="1800" height="1200" fetchPriority="high" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <div className="hero-photo-inner">
             <h1>
               <span className="line"><span>Ahorra tiempo</span></span>
@@ -145,12 +146,19 @@ export function Landing({ onAssistant }) {
           <Reveal as="h2">¿Qué maquinaria necesitas?</Reveal>
           <Reveal as="p" delay={80}>Elige una familia y te preguntamos solo lo que hace falta para esa máquina.</Reveal>
         </div>
+        <div className="sectors">
+          <span id="sector-label">¿En qué sector trabajas?</span>
+          <div className="chips" role="group" aria-labelledby="sector-label">
+            {SECTORS.map((x) => <button key={x.id} aria-pressed={sector === x.id} className={sector === x.id ? 'on' : ''} onClick={() => setSector(x.id)}>{x.name}</button>)}
+          </div>
+          <p aria-live="polite">Lo más pedido: {SECTORS.find((x) => x.id === sector).families.map((id) => familyById(id).name.toLowerCase()).join(', ')}.</p>
+        </div>
         <div className="fam-grid">
           {FAMILIES.map((f, i) => (
-            <Reveal as="button" key={f.id} className="fam" delay={i * 50} onClick={() => start(f.id)}>
-              <Photo src={FAMILY_IMG[f.id]} alt=""><FamilyIcon id={f.id} size={44} /></Photo>
+            <Reveal as="button" key={f.id} className={`fam ${SECTORS.find((x) => x.id === sector).families.includes(f.id) ? 'hot' : ''}`} delay={i * 50} onClick={() => start(f.id)}>
+              <Photo src={FAMILY_IMG[f.id]} alt="" sizes="(max-width: 1080px) 50vw, 25vw"><FamilyIcon id={f.id} size={44} /></Photo>
               <span className="fam-copy"><b>{f.name}</b><small>{f.task}</small></span>
-              <ArrowRight size={18} />
+              <ArrowRight size={18} aria-hidden />
             </Reveal>
           ))}
         </div>
@@ -228,7 +236,7 @@ export function Landing({ onAssistant }) {
       </section>
 
       <section className="final-cta">
-        <img src={IMG.cta} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <img src={IMG.cta} srcSet={srcSetFor(IMG.cta)} sizes="100vw" alt="" width="1800" height="1200" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div>
           <Reveal as="h2">Una sola solicitud. Todas las ofertas. Una sola decisión.</Reveal>
           <Reveal className="hero-actions" delay={120}>
@@ -237,6 +245,8 @@ export function Landing({ onAssistant }) {
           </Reveal>
         </div>
       </section>
+
+      </main>
 
       <footer className="lfoot">
         <div className="lfoot-top">
@@ -269,7 +279,7 @@ export function Landing({ onAssistant }) {
             <span>Málaga y Costa del Sol. Lunes a viernes, de 7:00 a 19:00.</span>
           </div>
         </div>
-        <div className="lfoot-word" aria-hidden>MAQ<span>NOW</span></div>
+        <div className="lfoot-word" aria-hidden />
         <div className="lfoot-bottom">
           <span>© {new Date().getFullYear()} MAQNOW</span>
           <span>Versión de demostración: precios, valoraciones y respuestas de proveedores son simulados. Fotografías de Unsplash.</span>

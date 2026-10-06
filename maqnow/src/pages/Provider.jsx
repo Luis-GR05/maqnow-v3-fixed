@@ -50,6 +50,7 @@ function Dashboard({ s, p, pid, openReqs, rentals, fleet, st }) {
   return (
     <>
       <PageHead title={p.name} sub={`${p.scope} · ${p.city} · comisión MAQNOW ${p.commission} % solo sobre alquiler cerrado`}><GuestProviderPicker s={s} /></PageHead>
+      {p.status === 'pendiente' && <div className="notice warn" role="status">Tu empresa está pendiente de homologación. Completa tu ficha y tu flota: en cuanto la revisemos empezarás a recibir solicitudes.</div>}
       <div className="kpis">
         <Kpi label="Solicitudes por responder" value={pending.length} tone={pending.length ? 'accent' : ''} href="/app/solicitudes" />
         <Kpi label="Alquileres en curso" value={live.length} href="/app/alquileres" tone="ok" />
@@ -349,12 +350,12 @@ function Profile({ p, st }) {
         </div>
         <div className="field" style={{ marginTop: 16 }}>
           <span>Especialidades</span>
-          <div className="chips">{FAMILIES.map((x) => <button type="button" key={x.id} className={f.families.includes(x.id) ? 'on' : ''} onClick={() => toggle('families', x.id)}>{x.name}</button>)}</div>
+          <div className="chips">{FAMILIES.map((x) => <button type="button" key={x.id} aria-pressed={f.families.includes(x.id)} className={f.families.includes(x.id) ? 'on' : ''} onClick={() => toggle('families', x.id)}>{x.name}</button>)}</div>
         </div>
         {f.scope === 'Local' && (
           <div className="field" style={{ marginTop: 16 }}>
             <span>Provincias donde sirves</span>
-            <div className="chips">{['Málaga', 'Cádiz', 'Granada', 'Córdoba', 'Sevilla', 'Almería', 'Jaén', 'Huelva'].map((x) => <button type="button" key={x} className={(f.provinces || []).includes(x) ? 'on' : ''} onClick={() => toggle('provinces', x)}>{x}</button>)}</div>
+            <div className="chips">{['Málaga', 'Cádiz', 'Granada', 'Córdoba', 'Sevilla', 'Almería', 'Jaén', 'Huelva'].map((x) => <button type="button" key={x} aria-pressed={(f.provinces || []).includes(x)} className={(f.provinces || []).includes(x) ? 'on' : ''} onClick={() => toggle('provinces', x)}>{x}</button>)}</div>
           </div>
         )}
         <div className="form-foot"><button className="btn btn-primary">Guardar ficha</button>{saved && <span className="ok-text"><Check size={15} /> Guardado</span>}</div>
