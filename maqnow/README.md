@@ -1,33 +1,34 @@
-# MAQNOW — Marketplace B2B de maquinaria
+# MAQNOW
 
-MVP frontend diseñado a partir del brief funcional de mercado. La aplicación representa el concepto: una solicitud, múltiples proveedores, comparación y contratación.
+Web y aplicación (adaptada a móvil) para pedir, comparar y gestionar alquileres de maquinaria.
 
-## Stack
-- React + Vite
-- Three.js / React Three Fiber / Drei
-- Lucide
-- CSS responsive sin framework
+## Arrancar
 
-## Arranque
 ```bash
 npm install
-npm run dev
+npm run dev      # desarrollo
+npm run build    # genera dist/ para publicar en cualquier hosting estático
 ```
 
-## Build
-```bash
-npm run build
-npm run preview
-```
+## Estructura
 
-## Imágenes
-Los archivos `public/*-placeholder.svg` son placeholders locales. Sustitúyelos por fotografías reales manteniendo los nombres o actualiza las rutas en React.
+- **Web pública** (`src/pages/Landing.jsx`): portada, cómo funciona, demostración del comparativo, maquinaria, empresas, proveedores, preguntas.
+- **Acceso y registro** (`src/pages/Auth.jsx`): cuentas de cliente o proveedor, y entrada como invitado.
+- **Aplicación** (`#/app/...`, menú lateral en `src/components/AppShell.jsx`):
+  - Cliente (`src/pages/Client.jsx`): inicio, nueva solicitud, solicitudes y comparativo, ofertas, alquileres, obras, entregas, averías, documentación (pasaporte digital), facturas, maquinaria habitual, informes, mi empresa.
+  - Proveedor (`src/pages/Provider.jsx`): inicio, solicitudes y ofertar, mis ofertas, alquileres, flota, entregas, incidencias, facturación y comisiones, ficha.
+  - Equipo MAQNOW (`src/pages/Admin.jsx`): panel, agente comercial, solicitudes (tablero y registro), clientes y riesgo, proveedores, alquileres, incidencias, comisiones y cobros, ajustes.
 
-## SEO
-Incluye title, description, canonical, Open Graph, Twitter cards, JSON-LD, robots.txt, sitemap.xml y manifest. Antes de producción sustituir `https://maqnow.es` por el dominio definitivo.
+## Demo sin servidor
 
-## DNS / despliegue
-Para un despliegue típico en Vercel/Netlify: crear el proyecto, apuntar el dominio raíz mediante los registros indicados por el proveedor y `www` mediante CNAME, activar HTTPS y mantener una sola URL canónica. No se incluyen valores DNS inventados: el proveedor de hosting debe proporcionar los destinos exactos.
+Todo se guarda en el navegador (`localStorage`): datos, cuentas y sesión. Las respuestas de los
+proveedores se simulan (se desactiva en Ajustes para ofertar a mano). Precios, valoraciones, tiempos,
+flota y contactos son inventados; solo los nombres y la cobertura de los proveedores salen de la
+revisión de mercado. Para pasar a datos y usuarios reales, sustituir `src/lib/store.js` por un backend.
 
-## Backend futuro
-Separar Cliente / Alquilador / Logística / Motor Central. Sustituir mocks por API, base de datos, autenticación, disponibilidad, pagos, documentación, incidencias e integraciones ERP.
+## Personalizar
+
+- Fotos: `src/data/images.js` (ahora enlazadas desde Unsplash).
+- Teléfono, WhatsApp y email de atención: `CONTACT` en `src/data/providers.js`.
+- Familias, tipos y preguntas de cada máquina: `src/data/catalog.js`.
+- Colores y tipografía: variables al inicio de `src/styles.css`.
