@@ -107,14 +107,23 @@ export function Card({ title, action, children, className = '' }) {
   );
 }
 
+// Tabla de datos. En pantallas estrechas cada fila se convierte en una ficha:
+// por eso cada celda recibe en data-label el título de su columna.
 export function Table({ head, children, empty }) {
-  const rows = React.Children.toArray(children);
+  const labels = head.map((h) => (typeof h === 'object' ? h.num : h));
+  const label = (node) => {
+    if (!React.isValidElement(node)) return node;
+    if (node.type === React.Fragment) return React.cloneElement(node, {}, React.Children.map(node.props.children, label));
+    if (node.type !== 'tr' || /detail/.test(node.props.className || '')) return node;
+    return React.cloneElement(node, {}, React.Children.map(node.props.children, (td, i) => (React.isValidElement(td) ? React.cloneElement(td, { 'data-label': labels[i] || '' }) : td)));
+  };
+  const rows = React.Children.toArray(children).map(label);
   if (!rows.length && empty) return <Empty>{empty}</Empty>;
   return (
     <section className="card table-card">
       <div className="table-scroll">
         <table className="data">
-          <thead><tr>{head.map((h, i) => <th key={i} className={typeof h === 'object' ? 'num' : ''}>{typeof h === 'object' ? h.num : h}</th>)}</tr></thead>
+          <thead><tr>{head.map((h, i) => <th key={i} className={typeof h === 'object' ? 'num' : ''}>{labels[i]}</th>)}</tr></thead>
           <tbody>{rows}</tbody>
         </table>
       </div>
@@ -125,13 +134,20 @@ export function Table({ head, children, empty }) {
 // Línea de etapas (ciclo de la solicitud)
 export function Stepline({ stages, current }) {
   return (
-    <ol className="stepline">
-      {stages.map((s, i) => (
-        <li key={s} className={i < current ? 'done' : i === current ? 'now' : ''}>
-          <i>{i < current ? <Check size={12} /> : null}</i><span>{s}</span>
-        </li>
-      ))}
-    </ol>
+    <div className="stepline-wrap">
+      <ol className="stepline">
+        {stages.map((s, i) => (
+          <li key={s} className={i < current ? 'done' : i === current ? 'now' : ''}>
+            <i>{i < current ? <Check size={12} /> : null}</i><span>{s}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="stepline-compact">
+        <div><b>{stages[current]}</b><span>Paso {current + 1} de {stages.length}</span></div>
+        <div className="stepline-bar">{stages.map((s, i) => <i key={s} className={i < current ? 'done' : i === current ? 'now' : ''} />)}</div>
+        {current < stages.length - 1 && <small>Siguiente: {stages[current + 1].toLowerCase()}</small>}
+      </div>
+    </div>
   );
 }
 

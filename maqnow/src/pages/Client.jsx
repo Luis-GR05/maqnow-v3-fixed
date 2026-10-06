@@ -163,6 +163,18 @@ function RequestDetail({ s, id, requests }) {
   const maxTotal = Math.max(1, ...top.map((o) => o.total));
   const rental = s.rentals.find((r) => r.requestId === req.id);
   const accept = (o) => go(`/app/alquiler/${actions.acceptOffer(req.id, o.providerId)}`);
+  const cmpRows = [
+    ['Disponibilidad', (o) => (o.available === 'si' ? <Badge tone="ok">Confirmada</Badge> : <Badge tone="warn">Con retraso</Badge>)],
+    ['Entrega', (o) => fmtDay(o.deliveryDate)],
+    ['Alquiler', (o) => eur(o.price)],
+    ['Transporte', (o) => (o.transport ? `${eur(o.transport)} · ${o.km} km` : 'Incluido')],
+    ['Total', (o) => eur(o.total), true],
+    ['Fianza', (o) => eur(o.deposit)],
+    ['Servicio técnico', (o) => `Respuesta en ${o.assistanceH} h`],
+    ['Forma de pago', (o) => o.payment],
+    ['Valoración', (o) => <><Stars value={o.rating} /> {o.rating.toFixed(1).replace('.', ',')}</>],
+    ['Puntuación', (o) => `${o.score}/100`, true],
+  ];
 
   return (
     <>
@@ -208,7 +220,7 @@ function RequestDetail({ s, id, requests }) {
             <p className="hint">Puntuación: {Object.keys(SCORE_WEIGHTS).map((k) => `${SCORE_LABELS[k].toLowerCase()} ${SCORE_WEIGHTS[k]} %`).join(', ')}. La recomendada no siempre es la más barata.</p>
           </Card>
 
-          <section className="card table-card">
+          <section className="card table-card cmp-desktop">
             <div className="table-scroll">
               <table className="cmp-table">
                 <thead>
@@ -223,21 +235,25 @@ function RequestDetail({ s, id, requests }) {
                   </tr>
                 </thead>
                 <tbody>
-                  <Row label="Disponibilidad" top={top} cell={(o) => (o.available === 'si' ? <Badge tone="ok">Confirmada</Badge> : <Badge tone="warn">Con retraso</Badge>)} />
-                  <Row label="Entrega" top={top} cell={(o) => fmtDay(o.deliveryDate)} />
-                  <Row label="Alquiler" top={top} cell={(o) => eur(o.price)} />
-                  <Row label="Transporte" top={top} cell={(o) => (o.transport ? `${eur(o.transport)} · ${o.km} km` : 'Incluido')} />
-                  <Row label="Total" strong top={top} cell={(o) => eur(o.total)} />
-                  <Row label="Fianza" top={top} cell={(o) => eur(o.deposit)} />
-                  <Row label="Servicio técnico" top={top} cell={(o) => `Respuesta en ${o.assistanceH} h`} />
-                  <Row label="Forma de pago" top={top} cell={(o) => o.payment} />
-                  <Row label="Valoración" top={top} cell={(o) => <><Stars value={o.rating} /> {o.rating.toFixed(1).replace('.', ',')}</>} />
-                  <Row label="Puntuación" strong top={top} cell={(o) => `${o.score}/100`} />
+                  {cmpRows.map(([label, cell, strong]) => <Row key={label} label={label} strong={strong} top={top} cell={cell} />)}
                   {open && <Row label="" top={top} cell={(o) => <button className="btn btn-primary btn-sm" onClick={() => accept(o)}>Aceptar oferta</button>} />}
                 </tbody>
               </table>
             </div>
           </section>
+
+          <div className="offer-cards">
+            {top.map((o, i) => (
+              <article key={o.providerId} className={`card offer-card ${i === 0 && !showAll ? 'best' : ''}`}>
+                <header>
+                  <div>{tagOf(o, i) && <Badge tone={i === 0 && !showAll ? 'ok' : 'info'}>{tagOf(o, i)}</Badge>}<h3>{o.provider.name}</h3><small>{o.provider.scope} · {o.provider.city}</small></div>
+                  <div className="offer-total"><b>{eur(o.total)}</b><span>{o.score}/100</span></div>
+                </header>
+                <dl>{cmpRows.filter(([label]) => !['Total', 'Puntuación'].includes(label)).map(([label, cell]) => <div key={label}><dt>{label}</dt><dd>{cell(o)}</dd></div>)}</dl>
+                {open && <button className="btn btn-primary" onClick={() => accept(o)}>Aceptar oferta</button>}
+              </article>
+            ))}
+          </div>
 
           <div className="cmp-foot">
             {ranked.length > TOP_OFFERS && <button className="btn btn-ghost" onClick={() => setShowAll(!showAll)}>{showAll ? 'Ver solo las 5 mejores' : `Ver las ${ranked.length} ofertas`}</button>}

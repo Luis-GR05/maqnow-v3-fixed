@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
+import { ArrowRight, ArrowUp, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
 import { FAMILIES } from '../data/catalog';
 import { CONTACT } from '../data/providers';
 import { IMG, FAMILY_IMG } from '../data/images';
@@ -239,14 +239,42 @@ export function Landing({ onAssistant }) {
       </section>
 
       <footer className="lfoot">
-        <div>
-          <a className="brand" href="#/"><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" />MAQ<span>NOW</span></a>
-          <p>Busca. Compara. Alquila.</p>
+        <div className="lfoot-top">
+          <div className="lfoot-lead">
+            <p>Busca. Compara. Alquila.</p>
+            <span>La forma más rápida de pedir precio de maquinaria a todos los alquiladores de tu zona.</span>
+            <div className="lfoot-cta">
+              <button className="btn btn-primary" onClick={() => start()}>Pedir ofertas <ArrowRight size={16} /></button>
+              <a className="btn btn-glass" href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>
+            </div>
+          </div>
+          <nav className="lfoot-cols" aria-label="Pie de página">
+            <div>
+              <b>Plataforma</b>
+              <a href="#como">Cómo funciona</a><a href="#maquinaria">Maquinaria</a><a href="#empresas">Para empresas</a><a href="#preguntas">Preguntas frecuentes</a>
+            </div>
+            <div>
+              <b>Proveedores</b>
+              <a href="#proveedores">Por qué MAQNOW</a><a href="#/registro/proveedor">Dar de alta mi empresa</a><a href="#/acceso">Portal de proveedor</a>
+            </div>
+            <div>
+              <b>Cuenta</b>
+              <a href="#/acceso">Entrar</a><a href="#/registro">Crear cuenta</a><button onClick={() => start()}>Probar sin registro</button>
+            </div>
+          </nav>
+          <div className="lfoot-contact">
+            <b>Atención urgente</b>
+            <a className="lfoot-phone" href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a>
+            <a href={`mailto:${CONTACT.email}`}><Mail size={15} /> {CONTACT.email}</a>
+            <span>Málaga y Costa del Sol. Lunes a viernes, de 7:00 a 19:00.</span>
+          </div>
         </div>
-        <div><b>Plataforma</b><a href="#como">Cómo funciona</a><a href="#maquinaria">Maquinaria</a><a href="#preguntas">Preguntas</a></div>
-        <div><b>Cuenta</b><a href="#/acceso">Entrar</a><a href="#/registro">Crear cuenta</a><a href="#/registro/proveedor">Soy proveedor</a></div>
-        <div><b>Contacto</b><a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a></div>
-        <small>Versión de demostración: precios, valoraciones y respuestas de proveedores son simulados. Fotografías de Unsplash.</small>
+        <div className="lfoot-word" aria-hidden>MAQ<span>NOW</span></div>
+        <div className="lfoot-bottom">
+          <span>© {new Date().getFullYear()} MAQNOW</span>
+          <span>Versión de demostración: precios, valoraciones y respuestas de proveedores son simulados. Fotografías de Unsplash.</span>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Volver arriba <ArrowUp size={15} /></button>
+        </div>
       </footer>
     </div>
   );
