@@ -49,7 +49,7 @@ function Dashboard({ s, p, pid, openReqs, rentals, fleet, st }) {
   const moves = movements(s, (r) => r.providerId === pid).slice(0, 5);
   return (
     <>
-      <PageHead title={p.name} sub={`${p.scope} · ${p.city} · comisión MAQNOW ${p.commission} % solo sobre alquiler cerrado`}><GuestProviderPicker s={s} /></PageHead>
+      <PageHead title={p.name} sub={`${p.scope} · ${p.city}`}><GuestProviderPicker s={s} /></PageHead>
       {p.status === 'pendiente' && <div className="notice warn" role="status">Tu empresa está pendiente de homologación. Completa tu ficha y tu flota: en cuanto la revisemos empezarás a recibir solicitudes.</div>}
       <div className="kpis">
         <Kpi label="Solicitudes por responder" value={pending.length} tone={pending.length ? 'accent' : ''} href="/app/solicitudes" />
@@ -195,7 +195,6 @@ function Rentals({ s, rentals }) {
               <div className="rental-actions">
                 {r.status === 'reservada' && <button className="btn btn-primary btn-sm" onClick={() => actions.setRentalStatus(r.id, 'en alquiler')}>Confirmar entrega en obra</button>}
                 {r.status === 'baja solicitada' && <button className="btn btn-primary btn-sm" onClick={() => actions.confirmPickup(r.id)}>Confirmar recogida</button>}
-                <span className="reviewed">Comisión MAQNOW: {eur(r.commission)} ({r.commissionPct} %)</span>
               </div>
             </article>
           ))}
@@ -305,22 +304,22 @@ function Incidents({ s, rentals }) {
 function Billing({ s, pid, rentals }) {
   const inv = invoicesOf(s, (r) => r.providerId === pid);
   const gross = rentals.reduce((a, r) => a + r.total, 0);
-  const comm = rentals.reduce((a, r) => a + r.commission, 0);
+  const pending = inv.filter((i) => i.status !== 'pagada').reduce((a, i) => a + i.base, 0);
   return (
     <>
-      <PageHead title="Facturación y comisiones" sub="Lo que has facturado a través de MAQNOW y la comisión de cada operación." />
+      <PageHead title="Facturación" sub="Lo que has facturado a través de MAQNOW y el estado de cobro de cada alquiler." />
       <div className="kpis three">
         <Kpi label="Facturado" value={eur(gross)} hint={`${rentals.length} alquileres`} />
-        <Kpi label="Comisión MAQNOW" value={eur(comm)} hint={`${eur(rentals.filter((r) => r.commissionStatus === 'pendiente').reduce((a, r) => a + r.commission, 0))} pendiente de liquidar`} />
-        <Kpi label="Neto para ti" value={eur(gross - comm)} tone="ok" />
+        <Kpi label="Pendiente de cobro" value={eur(pending)} />
+        <Kpi label="Cobrado" value={eur(inv.filter((i) => i.status === 'pagada').reduce((a, i) => a + i.base, 0))} tone="ok" />
       </div>
-      <Table head={['Alquiler', 'Cliente', 'Periodo', { num: 'Importe' }, { num: 'Comisión' }, 'Liquidación', 'Cobro del cliente']} empty="Aún no hay operaciones.">
+      <Table head={['Alquiler', 'Cliente', 'Periodo', { num: 'Importe' }, 'Cobro del cliente']} empty="Aún no hay operaciones.">
         {rentals.map((r) => {
           const i = inv.find((x) => x.rentalId === r.id);
           return (
             <tr key={r.id}>
               <td className="code">{r.id}</td><td>{s.clients.find((c) => c.id === r.clientId)?.name}</td><td>{fmtDay(r.start)} – {fmtDay(r.end)}</td>
-              <td className="num">{eur(r.total)}</td><td className="num">{eur(r.commission)} ({r.commissionPct} %)</td><td><Status value={r.commissionStatus} /></td><td>{i ? <Status value={i.status} /> : '—'}</td>
+              <td className="num">{eur(r.total)}</td><td>{i ? <Status value={i.status} /> : '—'}</td>
             </tr>
           );
         })}
@@ -361,7 +360,7 @@ function Profile({ p, st }) {
         <div className="form-foot"><button className="btn btn-primary">Guardar ficha</button>{saved && <span className="ok-text"><Check size={15} /> Guardado</span>}</div>
       </form>
       <Card title="Plan">
-        <p><b>Plan {p.plan || 'Gratis'}</b> · comisión del {p.commission} % solo cuando se cierra un alquiler.</p>
+        <p><b>Plan {p.plan || 'Gratis'}</b> · alta y uso del portal sin coste.</p>
         <p className="muted">Próximamente, plan PRO: más visibilidad, prioridad en solicitudes, estadísticas, gestión de flota e integración por API.</p>
         <p className="muted">Tu índice interno actual: {st.index}/100.</p>
       </Card>

@@ -18,7 +18,7 @@ export const NAV = {
     ['', [['inicio', 'Inicio', LayoutDashboard]]],
     ['Comercial', [['solicitudes', 'Solicitudes', ClipboardList], ['ofertas', 'Mis ofertas', Tags], ['alquileres', 'Alquileres', Truck]]],
     ['Operación', [['flota', 'Mi maquinaria', Warehouse], ['entregas', 'Entregas y recogidas', CalendarClock], ['incidencias', 'Incidencias', Wrench]]],
-    ['Mi empresa', [['facturacion', 'Facturación y comisiones', Receipt], ['ficha', 'Ficha de proveedor', Briefcase]]],
+    ['Mi empresa', [['facturacion', 'Facturación', Receipt], ['ficha', 'Ficha de proveedor', Briefcase]]],
   ],
   admin: [
     ['', [['inicio', 'Panel', LayoutDashboard], ['agente', 'Agente comercial', Bot]]],

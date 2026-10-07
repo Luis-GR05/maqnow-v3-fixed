@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ArrowUp, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
+import { ArrowRight, ArrowUp, ArrowDown, Pause, Play, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
 import { FAMILIES, familyById } from '../data/catalog';
 import { CONTACT } from '../data/providers';
 import { IMG, FAMILY_IMG } from '../data/images';
@@ -66,41 +66,8 @@ export function Landing({ onAssistant }) {
       </header>
 
       <main id="contenido" tabIndex={-1}>
-      {/* Portada: foto + acciones a la izquierda, "cómo lo hacemos" a la derecha */}
-      <section className="hero">
-        <div className="hero-photo">
-          <img src={IMG.hero} srcSet={srcSetFor(IMG.hero, [640, 1000, 1400, 1800])} sizes="(max-width: 900px) 100vw, 56vw" alt="Parque de maquinaria de alquiler" width="1800" height="1200" fetchPriority="high" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-          <div className="hero-photo-inner">
-            <h1>
-              <span className="line"><span>Ahorra tiempo</span></span>
-              <span className="line"><span>y dinero en el alquiler</span></span>
-              <span className="line"><span>de maquinaria.</span></span>
-            </h1>
-            <div className="hero-actions">
-              <button className="btn btn-primary btn-lg" onClick={() => start()}>Comenzar ya <ArrowRight size={18} /></button>
-              <button className="btn btn-glass btn-lg" onClick={onAssistant}><MessageCircle size={18} /> Asistente o ayuda</button>
-            </div>
-            <p className="hero-note">Gratis para quien alquila. Sin registro para probarlo.</p>
-          </div>
-        </div>
-        <div className="hero-how">
-          <h2>Cómo lo hacemos</h2>
-          <ol>
-            {HOW.map(([title, text], i) => (
-              <li key={title} style={{ transitionDelay: `${350 + i * 110}ms` }}>
-                <span className="how-num">{i + 1}</span>
-                <div><b>{title}</b><p>{text}</p></div>
-              </li>
-            ))}
-          </ol>
-          <div className="hero-contact">
-            <span>Atención urgente</span>
-            <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}><Phone size={15} /> {CONTACT.phone}</a>
-            <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a>
-            <a href={`mailto:${CONTACT.email}`}><Mail size={15} /> {CONTACT.email}</a>
-          </div>
-        </div>
-      </section>
+      {/* Portada: una foto a toda pantalla, una frase y una acción. Lo demás va debajo. */}
+      <Hero onStart={() => start()} onAssistant={onAssistant} />
 
       <div className="marquee" aria-hidden>
         <div>
@@ -110,8 +77,31 @@ export function Landing({ onAssistant }) {
         </div>
       </div>
 
+      {/* Cómo lo hacemos */}
+      <section className="lsec how" id="como">
+        <div className="lsec-head">
+          <Reveal as="h2">Cómo lo hacemos</Reveal>
+          <Reveal as="p" delay={80}>En 5 minutos, lo que te lleva una mañana.</Reveal>
+        </div>
+        <ol className="how-grid">
+          {HOW.map(([title, text], i) => (
+            <Reveal as="li" key={title} delay={i * 90}>
+              <span className="how-num">{i + 1}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </Reveal>
+          ))}
+        </ol>
+        <Reveal className="how-contact" delay={200}>
+          <span>Atención urgente</span>
+          <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}><Phone size={16} aria-hidden /> {CONTACT.phone}</a>
+          <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={16} aria-hidden /> WhatsApp</a>
+          <a href={`mailto:${CONTACT.email}`}><Mail size={16} aria-hidden /> {CONTACT.email}</a>
+        </Reveal>
+      </section>
+
       {/* Antes / después */}
-      <section className="lsec split" id="como">
+      <section className="lsec split">
         <Photo src={IMG.problem} alt="Operarios en una obra" className="split-photo" />
         <div className="split-copy">
           <Reveal as="h2">Hoy pedir precio es llamar a cinco empresas y esperar toda la mañana.</Reveal>
@@ -210,12 +200,12 @@ export function Landing({ onAssistant }) {
       {/* Proveedores */}
       <section className="lsec split dark" id="proveedores">
         <div className="split-copy">
-          <Reveal as="h2">¿Alquilas maquinaria? Te traemos clientes que ya quieren alquilar.</Reveal>
-          <Reveal as="p" delay={80} className="lead">No es un directorio más. Recibes solicitudes concretas de tu zona y tu especialidad, con fechas y obra, y respondes con disponibilidad y precio.</Reveal>
+          <Reveal as="h2">¿Alquilas maquinaria? Anúnciate con nosotros.</Reveal>
+          <Reveal as="p" delay={80} className="lead">Date de alta gratis y te traemos clientes que ya quieren alquilar: solicitudes concretas de tu zona y tu especialidad, con fechas y obra. Tú respondes con disponibilidad y precio.</Reveal>
           <Reveal className="terms" delay={140}>
             <div><b>0 €</b><span>alta y uso del portal</span></div>
-            <div><b>3 – 7 %</b><span>comisión, solo si se cierra el alquiler</span></div>
             <div><b>1 min</b><span>para enviar una oferta</span></div>
+            <div><b>Tu zona</b><span>solo solicitudes que puedes servir</span></div>
           </Reveal>
           <Reveal delay={200}><a className="btn btn-primary" href="#/registro/proveedor">Dar de alta mi empresa <ArrowRight size={16} /></a></Reveal>
         </div>
@@ -287,6 +277,86 @@ export function Landing({ onAssistant }) {
         </div>
       </footer>
     </div>
+  );
+}
+
+// Lo que alguien pediría: se va escribiendo solo en la portada
+const ASKS = ['una plataforma de 16 m en Marbella', 'una miniexcavadora para mañana en Málaga', 'un generador de 60 kVA para un evento', 'dos dumpers, 15 días, en Estepona', 'un manipulador telescópico en Antequera'];
+const SLIDES = [IMG.hero, IMG.providers, IMG.cta];
+
+function Hero({ onStart, onAssistant }) {
+  const calm = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const [ready, setReady] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(calm);
+  const [rest, setRest] = useState(false); // el resto de fotos se piden después de pintar la primera
+  const [typed, setTyped] = useState(calm ? ASKS[0] : '');
+
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setReady(true));
+    const t = setTimeout(() => setRest(true), 2500);
+    return () => { cancelAnimationFrame(r); clearTimeout(t); };
+  }, []);
+  // pase de fotos
+  useEffect(() => {
+    if (paused) return undefined;
+    const t = setInterval(() => { if (!document.hidden) setSlide((i) => (i + 1) % SLIDES.length); }, 6500);
+    return () => clearInterval(t);
+  }, [paused]);
+  // texto que se escribe y se borra
+  useEffect(() => {
+    if (paused) return undefined;
+    let i = 0, n = 0, dir = 1, timer;
+    const tick = () => {
+      const full = ASKS[i];
+      n += dir;
+      setTyped(full.slice(0, n));
+      let wait = dir > 0 ? 55 : 22;
+      if (dir > 0 && n === full.length) { dir = -1; wait = 2000; }
+      else if (dir < 0 && n === 0) { dir = 1; i = (i + 1) % ASKS.length; wait = 350; }
+      timer = setTimeout(tick, wait);
+    };
+    timer = setTimeout(tick, 900);
+    return () => clearTimeout(timer);
+  }, [paused]);
+
+  return (
+    <section className={`hx ${ready ? 'ready' : ''}`} aria-label="Portada">
+      <div className="hx-bg" aria-hidden>
+        {SLIDES.map((src, i) => (
+          (i === 0 || rest) && (
+            <img key={src} src={src} srcSet={srcSetFor(src, [640, 1000, 1400, 1800])} sizes="100vw" alt="" width="1800" height="1200"
+              className={i === slide ? 'on' : ''} fetchPriority={i === 0 ? 'high' : 'low'} decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          )
+        ))}
+      </div>
+
+      <div className="hx-inner">
+        <p className="hx-kicker">Alquiler de maquinaria</p>
+        <h1>
+          <span className="line"><span>Ahorra tiempo y dinero</span></span>
+          <span className="line"><span>en el alquiler</span></span>
+          <span className="line"><span>de maquinaria.</span></span>
+        </h1>
+        <button className="hx-ask" onClick={onStart}>
+          <span className="hx-ask-text">
+            <span className="sr-only">Pide lo que necesitas, por ejemplo: {ASKS[0]}.</span>
+            <span aria-hidden>Necesito <b>{typed}</b><i className="caret" /></span>
+          </span>
+          <span className="hx-ask-go">Comenzar ya <ArrowRight size={18} aria-hidden /></span>
+        </button>
+        <p className="hx-sub">
+          Una solicitud y te llegan las 5 mejores ofertas. Gratis.
+          <button className="hx-help" onClick={onAssistant}><MessageCircle size={16} aria-hidden /> Asistente o ayuda</button>
+        </p>
+      </div>
+
+      <div className="hx-ctrl">
+        <span aria-hidden>{SLIDES.map((_, i) => <i key={i} className={i === slide ? 'on' : ''} />)}</span>
+        <button onClick={() => setPaused(!paused)} aria-pressed={paused} aria-label={paused ? 'Reanudar la animación' : 'Pausar la animación'}>{paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}</button>
+      </div>
+      <a className="hx-scroll" href="#como" aria-label="Ver cómo lo hacemos"><ArrowDown size={20} aria-hidden /></a>
+    </section>
   );
 }
 
