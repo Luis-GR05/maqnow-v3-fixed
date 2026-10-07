@@ -53,7 +53,7 @@ function Dashboard({ s, me, requests, rentals, sites }) {
 
   return (
     <>
-      <PageHead title={`Hola, ${s.session.guest ? 'invitado' : s.session.name.split(' ')[0]}`} sub={me.name}><NewBtn /></PageHead>
+      <PageHead title={`Hola, ${s.session.guest ? 'invitado' : s.session.name.split(' ')[0]}`} sub={me.name} />
       <div className="kpis">
         <Kpi label="Alquileres activos" value={active.length} href="/app/alquileres" tone="ok" />
         <Kpi label="Próximos" value={upcoming.length} hint="reservados, pendientes de entrega" href="/app/entregas" />
@@ -129,7 +129,7 @@ function Requests({ requests }) {
   const list = requests.filter((r) => filter === 'todas' || (filter === 'abiertas' ? ['buscando', 'ofertas'].includes(r.status) : r.status === filter));
   return (
     <>
-      <PageHead title="Solicitudes" sub="Cada solicitud llega a todos los proveedores compatibles con tu obra."><NewBtn /></PageHead>
+      <PageHead title="Solicitudes" sub="Cada solicitud llega a todos los proveedores compatibles con tu obra." />
       <div className="filters">{[['todas', 'Todas'], ['abiertas', 'Abiertas'], ['aceptada', 'Aceptadas'], ['cancelada', 'Canceladas']].map(([k, l]) => <button key={k} aria-pressed={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
       {list.length === 0 ? <Empty action={<NewBtn />}>No hay solicitudes en esta vista.</Empty> : (
         <div className="list">
@@ -305,7 +305,7 @@ function Rentals({ s, rentals }) {
   const list = rentals.filter((r) => (filter === 'todos' ? true : filter === 'activos' ? r.status !== 'finalizada' : r.status === 'finalizada'));
   return (
     <>
-      <PageHead title="Alquileres" sub="Máquinas contratadas, con sus bajas, averías y documentación."><NewBtn /></PageHead>
+      <PageHead title="Alquileres" sub="Máquinas contratadas, con sus bajas, averías y documentación." />
       <div className="filters">{[['activos', 'En curso'], ['finalizados', 'Finalizados'], ['todos', 'Todos']].map(([k, l]) => <button key={k} aria-pressed={filter === k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div>
       {list.length === 0 ? <Empty action={<NewBtn />}>Cuando aceptes una oferta, el alquiler aparecerá aquí.</Empty> : (
         <div className="list">
