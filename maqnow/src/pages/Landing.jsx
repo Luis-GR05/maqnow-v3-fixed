@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Logo, LogoWord } from '../components/Logo';
 import { ArrowRight, ArrowUp, ArrowDown, Pause, Play, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
 import { FAMILIES, familyById } from '../data/catalog';
 import { CONTACT } from '../data/providers';
@@ -49,7 +50,7 @@ export function Landing({ onAssistant }) {
   return (
     <div className={`landing ${ready ? 'ready' : ''}`}>
       <header className="lnav">
-        <a className="brand" href="#/" aria-label={`${SITE.name}, inicio`}><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width="28" height="28" />MAQ<span>NOW</span></a>
+        <a className="brand" href="#/" aria-label={`${SITE.name}, inicio`}><Logo /></a>
         <nav id="menu-web" aria-label="Secciones de la web" className={menu ? 'open' : ''} onClick={() => setMenu(false)}>
           <a href="#como">Cómo funciona</a>
           <a href="#maquinaria">Maquinaria</a>
@@ -241,6 +242,7 @@ export function Landing({ onAssistant }) {
       <footer className="lfoot">
         <div className="lfoot-top">
           <div className="lfoot-lead">
+            <a className="brand lfoot-brand" href="#/" aria-label="MAQNOW, inicio"><Logo /></a>
             <p>Busca. Compara. Alquila.</p>
             <span>La forma más rápida de pedir precio de maquinaria a todos los alquiladores de tu zona.</span>
             <div className="lfoot-cta">
@@ -269,7 +271,7 @@ export function Landing({ onAssistant }) {
             <span>Málaga y Costa del Sol. Lunes a viernes, de 7:00 a 19:00.</span>
           </div>
         </div>
-        <div className="lfoot-word" aria-hidden />
+        <LogoWord className="lfoot-word" />
         <div className="lfoot-bottom">
           <span>© {new Date().getFullYear()} MAQNOW</span>
           <span>Versión de demostración: precios, valoraciones y respuestas de proveedores son simulados. Fotografías de Unsplash.</span>

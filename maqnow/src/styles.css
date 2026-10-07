@@ -103,20 +103,28 @@ small {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   font: 800 24px var(--display);
   text-decoration: none;
   letter-spacing: .01em;
   color: #fff;
 }
 
-.brand img {
-  width: 28px;
-  height: 28px;
+.brand .logo-mark {
+  height: 36px;
+  width: auto;
+  flex: none;
 }
 
-.brand span {
-  color: var(--yellow);
+.brand .logo-word {
+  height: 21px;
+  width: auto;
+  flex: none;
+}
+
+.logo-mark .now,
+.logo-word .now {
+  stroke: var(--yellow);
 }
 
 /* ---------- botones ---------- */
@@ -1627,30 +1635,33 @@ ul.plus {
   font-size: 14px;
 }
 
+.lfoot-brand {
+  margin-bottom: 26px;
+}
+
+.lfoot-brand .logo-mark {
+  height: 52px;
+}
+
+.lfoot-brand .logo-word {
+  height: 30px;
+}
+
 .lfoot-word {
-  font: 800 clamp(96px, 25vw, 400px)/.74 var(--display);
-  text-transform: uppercase;
-  text-align: center;
-  white-space: nowrap;
+  display: block;
+  width: min(100% - 2 * clamp(16px, 4vw, 48px), 1700px);
+  height: auto;
+  margin: clamp(40px, 6vw, 88px) auto clamp(20px, 3vw, 44px);
   color: var(--steel);
-  margin-top: clamp(40px, 6vw, 88px);
-  letter-spacing: -.01em;
-  user-select: none;
-  transition: color .5s;
 }
 
-.lfoot-word::before {
-  content: 'MAQ';
+.lfoot-word .now {
+  stroke: var(--steel-2);
+  transition: stroke .5s;
 }
 
-.lfoot-word::after {
-  content: 'NOW';
-  color: var(--steel-2);
-  transition: color .5s;
-}
-
-.lfoot:hover .lfoot-word::after {
-  color: var(--yellow);
+.lfoot:hover .lfoot-word .now {
+  stroke: var(--yellow);
 }
 
 .lfoot-bottom {
@@ -5189,13 +5200,23 @@ h3,
   }
 
   .brand {
-    font-size: 20px;
-    gap: 6px;
+    gap: 8px;
   }
 
-  .brand img {
-    width: 24px;
-    height: 24px;
+  .brand .logo-mark {
+    height: 30px;
+  }
+
+  .brand .logo-word {
+    height: 17px;
+  }
+
+  .lfoot-brand .logo-mark {
+    height: 44px;
+  }
+
+  .lfoot-brand .logo-word {
+    height: 25px;
   }
 
   .content {

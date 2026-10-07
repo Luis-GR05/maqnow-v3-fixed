@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Logo } from '../components/Logo';
 import { ArrowLeft, HardHat, Truck, ShieldCheck, Eye, EyeOff, Check, Headset, Calculator } from 'lucide-react';
 import { FAMILIES, PROVINCES } from '../data/catalog';
 import { IMG } from '../data/images';
@@ -79,7 +80,7 @@ export function Auth({ mode = 'acceso', preset }) {
       <aside className="auth-side">
         <img src={IMG.auth} alt="" width="1400" height="933" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div>
-          <a className="brand" href="#/"><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width="28" height="28" />MAQ<span>NOW</span></a>
+          <a className="brand" href="#/" aria-label="MAQNOW, inicio"><Logo /></a>
           <p>Tú nos dices qué necesitas. Nosotros buscamos quién la tiene disponible, comparamos precio y condiciones, y tú eliges.</p>
         </div>
       </aside>

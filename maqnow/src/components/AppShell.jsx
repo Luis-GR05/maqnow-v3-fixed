@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Logo } from './Logo';
 import {
   LayoutDashboard, PlusCircle, ClipboardList, Tags, Truck, Building2, CalendarClock, Wrench, FileCheck2, Receipt, Star, BarChart3,
   Briefcase, Bell, MessageCircle, LogOut, Menu, X, Warehouse, Users, Bot, Percent, Settings, HardHat, ShieldCheck, UserPlus, UserCog, Headset, Calculator,
@@ -52,7 +53,7 @@ export function AppShell({ s, page, children, onAssistant }) {
   return (
     <div className={`shell ${drawer ? 'drawer-open' : ''}`}>
       <aside className="side" id="menu-lateral" aria-label="Menú de la aplicación">
-        <a className="brand" href="#/" aria-label="MAQNOW, ir a la web"><img src={`${import.meta.env.BASE_URL}logo-mark.svg`} alt="" width="28" height="28" />MAQ<span>NOW</span></a>
+        <a className="brand" href="#/" aria-label="MAQNOW, ir a la web"><Logo /></a>
         <nav aria-label="Secciones">
           {groups.map(([group, items]) => (
             <div key={group || 'top'} className="side-group">
