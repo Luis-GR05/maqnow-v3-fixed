@@ -1,6 +1,14 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MessageCircle, Lock } from 'lucide-react';
+// Tipografías alojadas en la propia web (solo el juego de caracteres latino): sin terceros ni bloqueo del pintado
+import '@fontsource/barlow/latin-400.css';
+import '@fontsource/barlow/latin-500.css';
+import '@fontsource/barlow/latin-600.css';
+import '@fontsource/barlow/latin-700.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/barlow-condensed/latin-800.css';
 import './styles.css';
 import { actions, initAuth, useStore } from './lib/store';
 import { ROLES, areaOf, canOpen } from './lib/roles';

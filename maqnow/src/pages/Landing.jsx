@@ -3,7 +3,7 @@ import { Logo, LogoWord } from '../components/Logo';
 import { ArrowRight, ArrowUp, ArrowDown, Pause, Play, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
 import { FAMILIES, familyById } from '../data/catalog';
 import { CONTACT } from '../data/providers';
-import { IMG, FAMILY_IMG } from '../data/images';
+import { IMG, FAMILY_IMG, HERO_IDS, HERO_TALL, HERO_WIDE, photo, photoSet } from '../data/images';
 import { actions, getState, setDraft } from '../lib/store';
 import { SITE, FAQ, SECTORS } from '../data/site';
 import { FamilyIcon, Photo, Reveal, go, srcSetFor, useInView } from '../components/ui';
@@ -227,7 +227,7 @@ export function Landing({ onAssistant }) {
       </section>
 
       <section className="final-cta">
-        <img src={IMG.cta} srcSet={srcSetFor(IMG.cta)} sizes="100vw" alt="" width="1800" height="1200" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <img crossOrigin="anonymous" src={IMG.cta} srcSet={srcSetFor(IMG.cta)} sizes="100vw" alt="" width="1800" height="1200" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div>
           <Reveal as="h2">Una sola solicitud. Todas las ofertas. Una sola decisión.</Reveal>
           <Reveal className="hero-actions" delay={120}>
@@ -284,7 +284,7 @@ export function Landing({ onAssistant }) {
 
 // Lo que alguien pediría: se va escribiendo solo en la portada
 const ASKS = ['una plataforma de 16 m en Marbella', 'una miniexcavadora para mañana en Málaga', 'un generador de 60 kVA para un evento', 'dos dumpers, 15 días, en Estepona', 'un manipulador telescópico en Antequera'];
-const SLIDES = [IMG.hero, IMG.providers, IMG.cta];
+const SLIDES = HERO_IDS;
 
 function Hero({ onStart, onAssistant }) {
   const calm = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -296,7 +296,7 @@ function Hero({ onStart, onAssistant }) {
 
   useEffect(() => {
     const r = requestAnimationFrame(() => setReady(true));
-    const t = setTimeout(() => setRest(true), 2500);
+    const t = setTimeout(() => setRest(true), 5000); // justo antes del primer cambio de foto
     return () => { cancelAnimationFrame(r); clearTimeout(t); };
   }, []);
   // pase de fotos
@@ -325,10 +325,13 @@ function Hero({ onStart, onAssistant }) {
   return (
     <section className={`hx ${ready ? 'ready' : ''}`} aria-label="Portada">
       <div className="hx-bg" aria-hidden>
-        {SLIDES.map((src, i) => (
+        {SLIDES.map((id, i) => (
           (i === 0 || rest) && (
-            <img key={src} src={src} srcSet={srcSetFor(src, [640, 1000, 1400, 1800])} sizes="100vw" alt="" width="1800" height="1200"
-              className={i === slide ? 'on' : ''} fetchPriority={i === 0 ? 'high' : 'low'} decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <picture key={id}>
+              <source media={HERO_TALL.media} srcSet={photoSet(id, HERO_TALL.widths, HERO_TALL.ratio)} sizes="100vw" />
+              <img crossOrigin="anonymous" src={photo(id, 1600, HERO_WIDE.ratio)} srcSet={photoSet(id, HERO_WIDE.widths, HERO_WIDE.ratio)} sizes="100vw" alt="" width="1600" height="900"
+                className={i === slide ? 'on' : ''} fetchPriority={i === 0 ? 'high' : 'low'} decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            </picture>
           )
         ))}
       </div>

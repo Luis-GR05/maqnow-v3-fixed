@@ -1,14 +1,27 @@
 // Fotografías de Unsplash (licencia libre de uso, sin atribución obligatoria).
-// Se cargan desde su servidor; para alojarlas en local, descárgalas en public/img y cambia `u`.
-const u = (id, w = 1400) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=72`;
+// Se sirven desde su servidor, que las recorta y las entrega en AVIF o WebP según el navegador.
+// Para alojarlas en local, descárgalas en public/img y cambia `u`.
+const BASE = 'https://images.unsplash.com/photo-';
+const Q = 55; // con AVIF, 55 no se distingue de 72 y pesa un tercio menos
+
+// w: ancho en píxeles; ratio: alto / ancho del recorte (sin ratio se respeta el original)
+export const photo = (id, w, ratio) => `${BASE}${id}?auto=format&fit=crop&w=${w}${ratio ? `&h=${Math.round(w * ratio)}` : ''}&q=${Q}`;
+export const photoSet = (id, widths, ratio) => widths.map((w) => `${photo(id, w, ratio)} ${w}w`).join(', ');
+const u = (id, w = 1400) => photo(id, w);
+
+// Portada: recorte vertical para móvil y apaisado para escritorio, cada uno con sus anchos.
+// index.html precarga la primera con estos mismos valores: si cambias uno, cambia el otro.
+export const HERO_IDS = ['1642927778267-4e8b787b325a', '1756402751986-15f343b1437f', '1644221150167-fb4fafa7f411'];
+export const HERO_TALL = { media: '(max-aspect-ratio: 4/5)', widths: [480, 640, 828, 1080], ratio: 16 / 9 };
+export const HERO_WIDE = { widths: [960, 1280, 1600, 1920], ratio: 9 / 16 };
 
 export const IMG = {
-  hero: u('1642927778267-4e8b787b325a', 1800), // fila de máquinas en un parque
+  hero: u(HERO_IDS[0], 1800), // fila de máquinas en un parque
   problem: u('1504307651254-35680f356dfd'), // dos operarios en obra
   companies: u('1694521787162-5373b598945c'), // equipo en una obra
-  providers: u('1756402751986-15f343b1437f'), // plataformas aparcadas en un parque
+  providers: u(HERO_IDS[1]), // plataformas aparcadas en un parque
   auth: u('1575281923032-f40d94ef6160'), // excavadora cargando un dumper
-  cta: u('1644221150167-fb4fafa7f411', 1800), // edificio en construcción con grúa
+  cta: u(HERO_IDS[2], 1800), // edificio en construcción con grúa
 };
 
 export const FAMILY_IMG = {

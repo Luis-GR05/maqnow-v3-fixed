@@ -38,17 +38,9 @@
     <meta name="twitter:description" content="Pedimos oferta a todos los proveedores con un solo click y te hacemos el comparativo." />
     <meta name="twitter:image" content="https://luis-gr05.github.io/maqnow-v3-fixed/og-image.png" />
 
-    <!-- Rendimiento: conexiones anticipadas, foto de portada y tipografía sin bloquear el pintado -->
+    <!-- Rendimiento: la foto de portada y las dos tipografías principales se precargan.
+         Las etiquetas las añade vite.config.js a partir de src/data/images.js, para que coincidan siempre. -->
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="image" fetchpriority="high"
-      href="https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1800&q=72"
-      imagesrcset="https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=640&q=72 640w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1000&q=72 1000w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1400&q=72 1400w, https://images.unsplash.com/photo-1642927778267-4e8b787b325a?auto=format&fit=crop&w=1800&q=72 1800w"
-      imagesizes="100vw" />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" /></noscript>
 
     <!-- Datos estructurados para buscadores -->
     <script type="application/ld+json">

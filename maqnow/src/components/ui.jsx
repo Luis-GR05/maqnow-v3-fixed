@@ -212,7 +212,7 @@ export function Photo({ src, alt = '', className = '', sizes = '(max-width: 900p
   const [ok, setOk] = useState(!!src);
   return (
     <div className={`photo ${className} ${ok ? '' : 'no-img'}`}>
-      {ok && <img src={src} srcSet={srcSetFor(src)} sizes={sizes} alt={alt} width="1200" height="900" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setOk(false)} />}
+      {ok && <img crossOrigin="anonymous" src={src} srcSet={srcSetFor(src)} sizes={sizes} alt={alt} width="1200" height="900" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setOk(false)} />}
       {children}
     </div>
   );

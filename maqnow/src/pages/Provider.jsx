@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Check, Plus, ArrowRight } from 'lucide-react';
+import { Check, Plus, ArrowRight, ArrowLeft } from 'lucide-react';
 import { FAMILIES, familyById, PAYMENT_METHODS, PROVINCES } from '../data/catalog';
 import { actions, invoicesOf, itemsText, movements, providerById, providerStats, rankOffers, spendByMonth } from '../lib/store';
 import { eur, fmtDate, fmtDay, fmtMin, monthKey, monthLabel, todayISO } from '../lib/format';
 import { Badge, Card, Columns, Empty, Field, Kpi, PageHead, Stars, Status, Table } from '../components/ui';
 import { PassportModal, docsPct } from '../components/Passport';
 
-export function ProviderPages({ s, page }) {
+export function ProviderPages({ s, page, id }) {
   const pid = s.session.providerId;
   const p = providerById(pid, s);
   const mine = s.requests.filter((r) => r.contacted.some((c) => c.providerId === pid));
@@ -19,6 +19,8 @@ export function ProviderPages({ s, page }) {
   };
   switch (page) {
     case 'solicitudes': return <Requests {...ctx} />;
+    case 'solicitud': return <RequestDetail {...ctx} id={id} />;
+    case 'alquiler': return <RentalDetail {...ctx} id={id} />;
     case 'ofertas': return <MyOffers {...ctx} />;
     case 'alquileres': return <Rentals {...ctx} />;
     case 'flota': return <Fleet key={pid} {...ctx} />;
@@ -120,7 +122,7 @@ function OfferCard({ r, pid, client }) {
       <div className="rental-top">
         <div>
           <span className="code">{r.id}{r.urgent ? ' · URGENTE' : ''}</span>
-          <b>{itemsText(r.items)}</b>
+          <b><a className="card-link" href={`#/app/solicitud/${r.id}`}>{itemsText(r.items)}</a></b>
           <span>{client?.name} · {r.municipio} ({r.province}) · {fmtDate(r.start)} · {r.days} días · {r.delivery}</span>
           {r.notes && <span>“{r.notes}”</span>}
         </div>
@@ -152,14 +154,111 @@ function OfferCard({ r, pid, client }) {
   );
 }
 
+function offerResult(r, o, pid) {
+  if (!o) return <Badge>Sin oferta</Badge>;
+  if (o.available === 'no') return <Badge>Sin disponibilidad</Badge>;
+  if (r.status === 'aceptada') return r.acceptedProviderId === pid ? <Badge tone="ok">Ganada</Badge> : <Badge tone="bad">Perdida</Badge>;
+  if (r.status === 'cancelada') return <Badge>Cancelada</Badge>;
+  return <Badge tone="warn">En estudio</Badge>;
+}
+
+function RentalCard({ s, r, link }) {
+  const title = itemsText(r.items);
+  return (
+    <article className="card rental">
+      <div className="rental-top">
+        <div><span className="code">{r.id}</span><b>{link ? <a className="card-link" href={`#/app/alquiler/${r.id}`}>{title}</a> : title}</b><span>{s.clients.find((c) => c.id === r.clientId)?.name} · {r.municipio} · {fmtDay(r.start)} – {fmtDay(r.end)}</span><span>Máquinas: {r.machineIds.join(', ')}</span></div>
+        <div className="row-right"><Status value={r.status} /><b>{eur(r.total)}</b></div>
+      </div>
+      {r.status === 'baja solicitada' && <div className="notice warn">El cliente pide la baja y recogida para el {fmtDate(r.bajaDate)}.</div>}
+      <div className="rental-actions">
+        {r.status === 'reservada' && <button className="btn btn-primary btn-sm" onClick={() => actions.setRentalStatus(r.id, 'en alquiler')}>Confirmar entrega en obra</button>}
+        {r.status === 'baja solicitada' && <button className="btn btn-primary btn-sm" onClick={() => actions.confirmPickup(r.id)}>Confirmar recogida</button>}
+      </div>
+    </article>
+  );
+}
+
+function IncidentCard({ i, r }) {
+  return (
+    <article className="card rental">
+      <div className="rental-top">
+        <div><span className="code">{i.id} · {i.rentalId}</span><b>{i.type}{i.urgent ? ' · URGENTE' : ''}</b><span>{itemsText(r.items)} · {r.municipio}</span><span>{i.desc || 'Sin descripción'}</span></div>
+        <div className="row-right"><Status value={i.status} /></div>
+      </div>
+      <div className="rental-actions">
+        {i.status === 'abierta' && <button className="btn btn-ghost btn-sm" onClick={() => actions.setIncidentStatus(i.id, 'en curso')}>Técnico en camino</button>}
+        {i.status !== 'resuelta' && <button className="btn btn-primary btn-sm" onClick={() => actions.setIncidentStatus(i.id, 'resuelta')}>Marcar resuelta</button>}
+      </div>
+    </article>
+  );
+}
+
+// Ficha de una solicitud: si sigue abierta se puede ofertar; si no, muestra cómo quedó tu oferta.
+function RequestDetail({ s, pid, mine, rentals, id }) {
+  const r = mine.find((x) => x.id === id);
+  const back = <a className="back" href="#/app/solicitudes"><ArrowLeft size={15} /> Solicitudes</a>;
+  if (!r) return <>{back}<Empty>Esta solicitud no existe o no se envió a tu empresa.</Empty></>;
+  const client = s.clients.find((c) => c.id === r.clientId);
+  const o = r.offers.find((x) => x.providerId === pid);
+  const open = ['buscando', 'ofertas'].includes(r.status);
+  const valid = r.offers.filter((x) => x.available !== 'no');
+  const pos = rankOffers(r, s).findIndex((x) => x.providerId === pid) + 1;
+  const rental = rentals.find((x) => x.requestId === r.id);
+  return (
+    <>
+      {back}
+      <PageHead title={itemsText(r.items)} sub={`${r.id} · ${client?.name || 'Cliente'} · ${r.municipio} (${r.province}) · ${fmtDate(r.start)} · ${r.days} días · ${r.delivery}${r.urgent ? ' · URGENTE' : ''}`}>
+        {open ? <Status value={o ? 'ofertas' : 'pendiente'} /> : offerResult(r, o, pid)}
+      </PageHead>
+      {open ? <div className="list"><OfferCard key={r.id + pid} r={r} pid={pid} client={client} /></div> : (
+        <Card title="Tu oferta">
+          {!o ? <p className="sub">La solicitud se cerró sin que enviaras oferta.</p> : o.available === 'no' ? <p className="sub">Respondiste que no tenías disponibilidad.</p> : (
+            <dl className="specs">
+              <div><dt>Alquiler</dt><dd>{eur(o.price)}</dd></div>
+              <div><dt>Transporte</dt><dd>{eur(o.transport)}</dd></div>
+              <div><dt>Total</dt><dd>{eur(o.price + o.transport)}</dd></div>
+              <div><dt>Condiciones de pago</dt><dd>{o.payment || '—'}</dd></div>
+              <div><dt>Posición</dt><dd>{pos ? `${pos}.ª de ${valid.length}` : '—'}</dd></div>
+              <div><dt>Resultado</dt><dd>{offerResult(r, o, pid)}</dd></div>
+            </dl>
+          )}
+          {r.notes && <p className="sub">Observaciones del cliente: “{r.notes}”</p>}
+          {rental && <div className="rental-actions"><a className="btn btn-primary btn-sm" href={`#/app/alquiler/${rental.id}`}>Ver el alquiler {rental.id} <ArrowRight size={15} /></a></div>}
+        </Card>
+      )}
+    </>
+  );
+}
+
+// Ficha de un alquiler: estado, acciones de entrega y recogida, y sus incidencias.
+function RentalDetail({ s, rentals, fleet, id }) {
+  const r = rentals.find((x) => x.id === id);
+  const back = <a className="back" href="#/app/alquileres"><ArrowLeft size={15} /> Alquileres</a>;
+  if (!r) return <>{back}<Empty>Este alquiler no existe o no es de tu empresa.</Empty></>;
+  const incidents = s.incidents.filter((i) => i.rentalId === r.id);
+  const machines = r.machineIds.map((mid) => fleet.find((m) => m.id === mid)).filter(Boolean);
+  return (
+    <>
+      {back}
+      <PageHead title={itemsText(r.items)} sub={`${r.id} · ${s.clients.find((c) => c.id === r.clientId)?.name || 'Cliente'} · ${s.sites.find((x) => x.id === r.siteId)?.name || r.municipio}`}><Status value={r.status} /></PageHead>
+      <div className="list"><RentalCard s={s} r={r} /></div>
+      {machines.length > 0 && (
+        <Card title="Máquinas asignadas">
+          <div className="mini-list">
+            {machines.map((m) => <div key={m.id}><div><b>{m.brand} · {m.type}{m.size ? `, ${m.size}` : ''}</b><span>{m.id} · documentación {docsPct(m)} % completa</span></div></div>)}
+          </div>
+        </Card>
+      )}
+      <Card title="Incidencias de este alquiler">
+        {incidents.length === 0 ? <p className="sub">Sin incidencias en este alquiler.</p> : <div className="list">{incidents.map((i) => <IncidentCard key={i.id} i={i} r={r} />)}</div>}
+      </Card>
+    </>
+  );
+}
+
 function MyOffers({ s, pid, mine }) {
   const rows = mine.map((r) => ({ r, o: r.offers.find((x) => x.providerId === pid) })).filter((x) => x.o);
-  const result = (r, o) => {
-    if (o.available === 'no') return <Badge>Sin disponibilidad</Badge>;
-    if (r.status === 'aceptada') return r.acceptedProviderId === pid ? <Badge tone="ok">Ganada</Badge> : <Badge tone="bad">Perdida</Badge>;
-    if (r.status === 'cancelada') return <Badge>Cancelada</Badge>;
-    return <Badge tone="warn">En estudio</Badge>;
-  };
   return (
     <>
       <PageHead title="Mis ofertas" sub="Histórico de ofertas enviadas y su resultado." />
@@ -168,9 +267,9 @@ function MyOffers({ s, pid, mine }) {
           const pos = rankOffers(r, s).findIndex((x) => x.providerId === pid) + 1;
           return (
             <tr key={r.id}>
-              <td className="code">{r.id}</td><td>{itemsText(r.items)}</td><td>{r.municipio}</td><td>{fmtDay(r.start)}</td>
+              <td className="code"><a href={`#/app/solicitud/${r.id}`}>{r.id}</a></td><td>{itemsText(r.items)}</td><td>{r.municipio}</td><td>{fmtDay(r.start)}</td>
               <td className="num">{o.available === 'no' ? '—' : eur(o.price)}</td><td className="num">{o.available === 'no' ? '—' : eur(o.transport)}</td>
-              <td className="num">{pos ? `${pos}.ª de ${r.offers.filter((x) => x.available !== 'no').length}` : '—'}</td><td>{result(r, o)}</td>
+              <td className="num">{pos ? `${pos}.ª de ${r.offers.filter((x) => x.available !== 'no').length}` : '—'}</td><td>{offerResult(r, o, pid)}</td>
             </tr>
           );
         })}
@@ -185,19 +284,7 @@ function Rentals({ s, rentals }) {
       <PageHead title="Alquileres" sub="Confirma la entrega en obra y la recogida cuando el cliente pida la baja." />
       {rentals.length === 0 ? <Empty>Todavía no tienes alquileres por MAQNOW.</Empty> : (
         <div className="list">
-          {rentals.map((r) => (
-            <article key={r.id} className="card rental">
-              <div className="rental-top">
-                <div><span className="code">{r.id}</span><b>{itemsText(r.items)}</b><span>{s.clients.find((c) => c.id === r.clientId)?.name} · {r.municipio} · {fmtDay(r.start)} – {fmtDay(r.end)}</span><span>Máquinas: {r.machineIds.join(', ')}</span></div>
-                <div className="row-right"><Status value={r.status} /><b>{eur(r.total)}</b></div>
-              </div>
-              {r.status === 'baja solicitada' && <div className="notice warn">El cliente pide la baja y recogida para el {fmtDate(r.bajaDate)}.</div>}
-              <div className="rental-actions">
-                {r.status === 'reservada' && <button className="btn btn-primary btn-sm" onClick={() => actions.setRentalStatus(r.id, 'en alquiler')}>Confirmar entrega en obra</button>}
-                {r.status === 'baja solicitada' && <button className="btn btn-primary btn-sm" onClick={() => actions.confirmPickup(r.id)}>Confirmar recogida</button>}
-              </div>
-            </article>
-          ))}
+          {rentals.map((r) => <RentalCard key={r.id} s={s} r={r} link />)}
         </div>
       )}
     </>
@@ -280,21 +367,7 @@ function Incidents({ s, rentals }) {
       <PageHead title="Incidencias" sub="Averías y consultas de tus máquinas en obra. El tiempo de respuesta cuenta en tu valoración." />
       {incidents.length === 0 ? <Empty>Sin incidencias abiertas.</Empty> : (
         <div className="list">
-          {incidents.map((i) => {
-            const r = rentals.find((x) => x.id === i.rentalId);
-            return (
-              <article key={i.id} className="card rental">
-                <div className="rental-top">
-                  <div><span className="code">{i.id} · {i.rentalId}</span><b>{i.type}{i.urgent ? ' · URGENTE' : ''}</b><span>{itemsText(r.items)} · {r.municipio}</span><span>{i.desc || 'Sin descripción'}</span></div>
-                  <Status value={i.status} />
-                </div>
-                <div className="rental-actions">
-                  {i.status === 'abierta' && <button className="btn btn-ghost btn-sm" onClick={() => actions.setIncidentStatus(i.id, 'en curso')}>Técnico en camino</button>}
-                  {i.status !== 'resuelta' && <button className="btn btn-primary btn-sm" onClick={() => actions.setIncidentStatus(i.id, 'resuelta')}>Marcar resuelta</button>}
-                </div>
-              </article>
-            );
-          })}
+          {incidents.map((i) => <IncidentCard key={i.id} i={i} r={rentals.find((x) => x.id === i.rentalId)} />)}
         </div>
       )}
     </>

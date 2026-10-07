@@ -5,7 +5,7 @@ import { FAMILIES, PROVINCES } from '../data/catalog';
 import { IMG } from '../data/images';
 import { actions } from '../lib/store';
 import { supabaseEnabled } from '../lib/supabase';
-import { Field, go } from '../components/ui';
+import { Field, go, srcSetFor } from '../components/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CIF_RE = /^[A-HJNP-SUVW]\d{7}[0-9A-J]$|^\d{8}[A-Z]$|^[XYZ]\d{7}[A-Z]$/i; // CIF, NIF o NIE (solo formato)
@@ -78,7 +78,7 @@ export function Auth({ mode = 'acceso', preset }) {
   return (
     <div className="auth">
       <aside className="auth-side">
-        <img src={IMG.auth} alt="" width="1400" height="933" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <img crossOrigin="anonymous" src={IMG.auth} srcSet={srcSetFor(IMG.auth, [700, 1000, 1400])} sizes="(max-width: 900px) 100vw, 45vw" alt="" width="1400" height="933" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div>
           <a className="brand" href="#/" aria-label="MAQNOW, inicio"><Logo /></a>
           <p>Tú nos dices qué necesitas. Nosotros buscamos quién la tiene disponible, comparamos precio y condiciones, y tú eliges.</p>

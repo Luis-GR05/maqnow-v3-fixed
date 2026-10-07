@@ -200,8 +200,8 @@ function Palette({ s, pages, onClose }) {
     const rents = s.rentals.filter((r) => (area === 'cliente' ? r.clientId === ss.clientId : area === 'proveedor' ? r.providerId === ss.providerId : true));
     return [
       ...pages.map(([id, label, Icon]) => ({ key: `p-${id}`, group: 'Páginas', label, hint: '', href: `/app/${id}`, Icon })),
-      ...reqs.map((r) => ({ key: `r-${r.id}`, group: 'Solicitudes', label: itemsText(r.items), hint: `${r.id} · ${r.municipio}`, href: area === 'proveedor' ? '/app/solicitudes' : `/app/solicitud/${r.id}`, Icon: ClipboardList })),
-      ...(area === 'admin' ? [] : rents.map((r) => ({ key: `a-${r.id}`, group: 'Alquileres', label: itemsText(r.items), hint: `${r.id} · ${r.municipio}`, href: area === 'proveedor' ? '/app/alquileres' : `/app/alquiler/${r.id}`, Icon: Truck }))),
+      ...reqs.map((r) => ({ key: `r-${r.id}`, group: 'Solicitudes', label: itemsText(r.items), hint: `${r.id} · ${r.municipio}`, href: `/app/solicitud/${r.id}`, Icon: ClipboardList })),
+      ...(area === 'admin' ? [] : rents.map((r) => ({ key: `a-${r.id}`, group: 'Alquileres', label: itemsText(r.items), hint: `${r.id} · ${r.municipio}`, href: `/app/alquiler/${r.id}`, Icon: Truck }))),
     ];
   }, [s.requests, s.rentals, pages, area, ss.clientId, ss.providerId]);
 
