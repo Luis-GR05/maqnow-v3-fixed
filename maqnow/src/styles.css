@@ -1672,16 +1672,7 @@ ul.plus {
   width: min(100% - 2 * clamp(16px, 4vw, 48px), 1700px);
   height: auto;
   margin: clamp(40px, 6vw, 88px) auto clamp(20px, 3vw, 44px);
-  color: var(--steel);
-}
-
-.lfoot-word .now {
-  stroke: var(--steel-2);
-  transition: stroke .5s;
-}
-
-.lfoot:hover .lfoot-word .now {
-  stroke: var(--yellow);
+  color: #fff;
 }
 
 .lfoot-bottom {
