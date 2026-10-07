@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MessageCircle, Lock } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 // Tipografías alojadas en la propia web (solo el juego de caracteres latino): sin terceros ni bloqueo del pintado
 import '@fontsource/barlow/latin-400.css';
 import '@fontsource/barlow/latin-500.css';
@@ -12,7 +12,8 @@ import '@fontsource/barlow-condensed/latin-800.css';
 import './styles.css';
 import { actions, initAuth, useStore } from './lib/store';
 import { ROLES, areaOf, canOpen } from './lib/roles';
-import { pageTitle } from './data/site';
+import { isKnownPage, pageTitle } from './data/site';
+import { ErrorBoundary, Loading, NoAccess, NotFound, OfflineBar } from './components/Screens';
 import { Landing } from './pages/Landing';
 
 // La web pública carga de inmediato; el área privada, el acceso y el asistente se descargan
@@ -20,6 +21,8 @@ import { Landing } from './pages/Landing';
 const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ default: m.AppShell })));
 const Auth = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Auth })));
 const Assistant = lazy(() => import('./components/Assistant').then((m) => ({ default: m.Assistant })));
+const Legal = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Legal })));
+const CookieBanner = lazy(() => import('./components/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 const AREAS = {
   cliente: lazy(() => import('./pages/Client').then((m) => ({ default: m.ClientPages }))),
   proveedor: lazy(() => import('./pages/Provider').then((m) => ({ default: m.ProviderPages }))),
@@ -45,19 +48,6 @@ function useRoute() {
   return parts;
 }
 
-const Loading = () => <div className="loading" role="status"><span className="spinner" aria-hidden />Cargando…</div>;
-
-function NoAccess({ role }) {
-  return (
-    <div className="empty noaccess">
-      <Lock size={30} aria-hidden />
-      <h1>No tienes permiso para ver esta página</h1>
-      <p>Tu rol es {ROLES[role].label}. Si necesitas acceso, pídeselo a un superadmin.</p>
-      <a className="btn btn-primary" href="#/app/inicio">Volver al inicio</a>
-    </div>
-  );
-}
-
 function App() {
   const s = useStore();
   const [section, a, b] = useRoute();
@@ -71,6 +61,9 @@ function App() {
     return () => clearInterval(t);
   }, []);
   useEffect(() => { initAuth(); }, []);
+  // el aviso de cookies se carga después de pintar la página, para no retrasarla
+  const [late, setLate] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setLate(true), 1200); return () => clearTimeout(t); }, []);
 
   // El área privada necesita sesión (registrada o de invitado)
   const needsLogin = section === 'app' && !s.session;
@@ -78,6 +71,7 @@ function App() {
 
   const isApp = section === 'app' && s.session;
   const isAuth = section === 'acceso' || section === 'registro';
+  const isLegal = section === 'legal';
   const page = a || 'inicio';
   const area = isApp ? areaOf(s.session.role) : null;
 
@@ -94,13 +88,21 @@ function App() {
     const Pages = AREAS[area];
     view = (
       <AppShell s={s} page={page} onAssistant={openAssistant}>
-        {canOpen(s.session.role, page) ? <Suspense fallback={<Loading />}><Pages s={s} page={page} id={b} onAssistant={openAssistant} /></Suspense> : <NoAccess role={s.session.role} />}
+        <ErrorBoundary inApp key={page}>
+          {!isKnownPage(area, page) ? <NotFound inApp />
+            : canOpen(s.session.role, page) ? <Suspense fallback={<Loading />}><Pages s={s} page={page} id={b} onAssistant={openAssistant} /></Suspense>
+              : <NoAccess roleLabel={ROLES[s.session.role].label} />}
+        </ErrorBoundary>
       </AppShell>
     );
   } else if (isAuth) {
     view = <Auth key={section + (a || '')} mode={section} preset={a} />;
+  } else if (isLegal) {
+    view = <Legal doc={a} />;
   } else if (needsLogin) {
     view = null;
+  } else if (section) {
+    view = <NotFound />;
   } else {
     view = <Landing onAssistant={openAssistant} />;
   }
@@ -108,13 +110,23 @@ function App() {
   return (
     <>
       <a className="skip-link" href="#contenido" onClick={(e) => { e.preventDefault(); document.getElementById('contenido')?.focus(); document.getElementById('contenido')?.scrollIntoView(); }}>Saltar al contenido</a>
-      <Suspense fallback={<Loading />}>{view}</Suspense>
-      {!assistant && !isAuth && section !== 'app' && (
+      <OfflineBar />
+      <ErrorBoundary><Suspense fallback={<Loading full />}>{view}</Suspense></ErrorBoundary>
+      {!assistant && !section && (
         <button className="assistant-fab" onClick={openAssistant} aria-label="Abrir asistente"><MessageCircle size={20} aria-hidden /> <span>Asistente</span></button>
       )}
       {assistantUsed && <Suspense fallback={null}><Assistant open={assistant} onClose={() => setAssistant(false)} /></Suspense>}
+      {late && <Suspense fallback={null}><CookieBanner /></Suspense>}
     </>
   );
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
+// La pantalla de carga de index.html se retira en cuanto la aplicación ha pintado
+requestAnimationFrame(() => {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.classList.add('out');
+  setTimeout(() => splash.remove(), 320);
+});

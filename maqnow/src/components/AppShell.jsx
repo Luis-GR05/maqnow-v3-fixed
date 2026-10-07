@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutDashboard, PlusCircle, Plus, ClipboardList, Tags, Truck, Building2, CalendarClock, Wrench, FileCheck2, Receipt, Star, BarChart3,
   Briefcase, Bell, MessageCircle, LogOut, Menu, X, Warehouse, Users, Bot, Percent, Settings, HardHat, ShieldCheck, UserPlus, UserCog, Headset, Calculator,
-  Search, PanelLeftClose, PanelLeftOpen, ChevronDown, Check, CornerDownLeft,
+  Scale, Search, PanelLeftClose, PanelLeftOpen, ChevronDown, Check, CornerDownLeft,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { actions, itemsText, notificationsFor, providerById } from '../lib/store';
@@ -126,6 +126,7 @@ export function AppShell({ s, page, children, onAssistant }) {
                   </div>
                 )}
                 {ss.guest && <a className="user-menu-item" href="#/registro"><UserPlus size={16} aria-hidden /> Crear cuenta</a>}
+                <a className="user-menu-item" href="#/legal/condiciones"><Scale size={16} aria-hidden /> Legal y privacidad</a>
                 <button className="user-menu-item" onClick={() => { actions.logout(); go('/'); }}><LogOut size={16} aria-hidden /> Cerrar sesión</button>
               </div>
             )}

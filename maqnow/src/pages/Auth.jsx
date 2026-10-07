@@ -133,8 +133,9 @@ export function Auth({ mode = 'acceso', preset }) {
           {!isReg && <button type="button" className="link forgot" onClick={forgot}>¿Has olvidado la contraseña?</button>}
           {isReg && (
             <div>
-              <label className="check"><input {...fld('terms')} type="checkbox" checked={f.terms} onChange={set('terms')} /> <span>Acepto las condiciones de uso y la política de privacidad.</span></label>
+              <label className="check"><input {...fld('terms')} type="checkbox" checked={f.terms} onChange={set('terms')} /> <span>Acepto las <a href="#/legal/condiciones" target="_blank" rel="noopener">condiciones de uso</a> y he leído la <a href="#/legal/privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
               <Err k="terms" />
+              <p className="privacy-note">Tus datos los trata MAQNOW para crear tu cuenta y gestionar tus solicitudes de alquiler. Se comparten con los proveedores solo en lo necesario para ofertar. Puedes acceder a ellos, rectificarlos o suprimirlos: lo explicamos en la política de privacidad.</p>
             </div>
           )}
           {msg && <p className={msg.tone === 'error' ? 'error' : 'notice ok'} role={msg.tone === 'error' ? 'alert' : 'status'}>{msg.tone !== 'error' && <Check size={16} aria-hidden />}{msg.text}</p>}

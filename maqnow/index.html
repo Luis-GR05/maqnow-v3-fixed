@@ -79,12 +79,46 @@
     <style>
       /* Estilo mínimo mientras llega el resto: evita el fogonazo blanco */
       body { margin: 0; background: #17191c; }
+      /* Pantalla de carga: se ve mientras llega la aplicación y main.jsx la retira al pintar */
+      #splash { position: fixed; inset: 0; z-index: 1000; background: #17191c; display: grid; place-items: center; align-content: center; gap: 26px; transition: opacity .3s ease; }
+      #splash.out { opacity: 0; pointer-events: none; }
+      #splash svg { width: 84px; height: auto; display: block; overflow: visible; }
+      #splash .m { animation: mq-open 1.3s cubic-bezier(.6, 0, .3, 1) infinite; }
+      #splash i { width: 132px; height: 6px; border-radius: 3px; background: repeating-linear-gradient(-45deg, #ffc400 0 10px, #2a2e33 10px 20px); background-size: 28.3px 100%; animation: mq-tape .7s linear infinite; }
+      #splash p { margin: 0; color: #c8ccd1; font: 500 15px/1.4 system-ui, sans-serif; text-align: center; padding: 0 24px; min-height: 1.4em; }
+      #splash p a { color: #ffc400; }
+      @keyframes mq-open { 0%, 100% { transform: translateY(0); } 45%, 60% { transform: translateY(-7px); } }
+      @keyframes mq-tape { to { background-position: 28.3px 0; } }
+      @media (prefers-reduced-motion: reduce) { #splash .m, #splash i { animation: none; } }
       .boot { min-height: 100vh; color: #fff; font: 18px/1.5 system-ui, sans-serif; padding: 12vh 6vw; max-width: 760px; }
       .boot h1 { font-size: clamp(34px, 6vw, 64px); line-height: 1; margin: 0 0 16px; text-transform: uppercase; }
       .boot a { color: #ffc400; }
     </style>
   </head>
   <body>
+    <div id="splash" role="status" aria-label="Cargando MAQNOW">
+      <svg viewBox="0 0 64 72" aria-hidden="true" focusable="false">
+        <clipPath id="sp"><rect width="64" height="34" /></clipPath>
+        <g fill="none" stroke-width="11" stroke-miterlimit="20">
+          <polyline class="m" clip-path="url(#sp)" points="5.5,60 5.5,0 32,26.26 58.5,0 58.5,60" stroke="#fff" />
+          <g transform="translate(64 72) rotate(180)"><polyline class="m" clip-path="url(#sp)" points="5.5,60 5.5,0 32,26.26 58.5,0 58.5,60" stroke="#ffc400" /></g>
+        </g>
+      </svg>
+      <i aria-hidden="true"></i>
+      <p id="splash-msg"></p>
+    </div>
+    <noscript><style>#splash { display: none; }</style></noscript>
+    <script>
+      // Si la aplicación tarda o no llega a cargar, la pantalla de carga lo dice en vez de quedarse girando
+      (function () {
+        var msg = function (html) { var p = document.getElementById('splash-msg'); if (p) p.innerHTML = html; };
+        setTimeout(function () { msg('Está tardando más de lo normal…'); }, 6000);
+        setTimeout(function () { msg('No hemos podido cargar MAQNOW. Comprueba tu conexión y <a href="">vuelve a intentarlo</a>.'); }, 15000);
+        window.addEventListener('error', function (e) {
+          var t = e.target; if (t && t.tagName === 'SCRIPT' && document.getElementById('splash')) msg('No hemos podido cargar MAQNOW. Comprueba tu conexión y <a href="">vuelve a intentarlo</a>.');
+        }, true);
+      })();
+    </script>
     <div id="root">
       <!-- Contenido de respaldo: lo ven los buscadores y quien no tenga JavaScript. La aplicación lo sustituye al cargar. -->
       <div class="boot">

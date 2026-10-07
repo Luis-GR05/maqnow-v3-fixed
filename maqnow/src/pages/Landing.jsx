@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Logo, LogoWord } from '../components/Logo';
+import { openCookieSettings } from '../lib/consent';
 import { ArrowRight, ArrowUp, ArrowDown, Pause, Play, MessageCircle, Phone, Mail, Menu, X, Check, FileCheck2, Wrench, LogOut, BarChart3, Plus } from 'lucide-react';
 import { FAMILIES, familyById } from '../data/catalog';
 import { CONTACT } from '../data/providers';
@@ -272,6 +273,10 @@ export function Landing({ onAssistant }) {
           </div>
         </div>
         <LogoWord className="lfoot-word" />
+        <nav className="lfoot-legal" aria-label="Legal">
+          <a href="#/legal/aviso-legal">Aviso legal</a><a href="#/legal/privacidad">Política de privacidad</a><a href="#/legal/cookies">Política de cookies</a><a href="#/legal/condiciones">Condiciones de uso</a>
+          <button onClick={openCookieSettings}>Configurar cookies</button>
+        </nav>
         <div className="lfoot-bottom">
           <span>© {new Date().getFullYear()} MAQNOW</span>
           <span>Versión de demostración: precios, valoraciones y respuestas de proveedores son simulados. Fotografías de Unsplash.</span>

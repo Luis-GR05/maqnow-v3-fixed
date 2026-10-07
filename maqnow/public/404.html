@@ -4,8 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#17191c" />
     <title>Página no encontrada · MAQNOW</title>
-    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#17191c;color:#fff;font:18px/1.5 system-ui,sans-serif;text-align:center;padding:24px}h1{font-size:44px;margin:0 0 8px}a{display:inline-block;margin-top:20px;background:#ffc400;color:#17191c;font-weight:700;padding:12px 20px;border-radius:8px;text-decoration:none}</style>
+    <link rel="icon" href="./logo-mark.svg" type="image/svg+xml" />
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; background: #17191c; color: #fff; font: 18px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+      header { padding: 22px clamp(18px, 5vw, 48px); }
+      header svg { height: 40px; width: auto; display: block; }
+      main { align-self: center; padding: 24px clamp(18px, 5vw, 48px) 14vh; max-width: 760px; }
+      .code { margin: 0; font: 800 clamp(110px, 26vw, 220px)/.82 "Arial Narrow", "Barlow Condensed", Arial, sans-serif; letter-spacing: -.02em; color: transparent; -webkit-text-stroke: 2px #ffc400; }
+      .tape { display: block; height: 12px; width: min(340px, 70%); margin: 22px 0 26px; background: repeating-linear-gradient(-45deg, #ffc400 0 16px, #17191c 16px 32px); }
+      h1 { margin: 0 0 10px; font: 800 clamp(32px, 6vw, 52px)/1 "Arial Narrow", "Barlow Condensed", Arial, sans-serif; text-transform: uppercase; }
+      p { margin: 0; color: #c8ccd1; max-width: 52ch; }
+      a.btn { display: inline-block; margin-top: 28px; background: #ffc400; color: #17191c; font-weight: 700; padding: 13px 22px; border-radius: 8px; text-decoration: none; }
+      a.btn:hover { background: #e3ac00; }
+      a:focus-visible { outline: 3px solid #ffc400; outline-offset: 3px; }
+    </style>
   </head>
-  <body><main><h1>Aquí no hay ninguna máquina</h1><p>La página que buscas no existe o ha cambiado de sitio.</p><a href="./">Volver a MAQNOW</a></main></body>
+  <body>
+    <header>
+      <a href="./" aria-label="MAQNOW, inicio">
+        <svg viewBox="0 0 64 72" aria-hidden="true"><clipPath id="h"><rect width="64" height="34" /></clipPath><g fill="none" stroke-width="11" stroke-miterlimit="20"><polyline clip-path="url(#h)" points="5.5,60 5.5,0 32,26.26 58.5,0 58.5,60" stroke="#fff" /><g transform="translate(64 72) rotate(180)"><polyline clip-path="url(#h)" points="5.5,60 5.5,0 32,26.26 58.5,0 58.5,60" stroke="#ffc400" /></g></g></svg>
+      </a>
+    </header>
+    <main>
+      <p class="code" aria-hidden="true">404</p>
+      <span class="tape" aria-hidden="true"></span>
+      <h1>Aquí no hay ninguna máquina</h1>
+      <p>La página que buscas no existe o ha cambiado de sitio. Comprueba la dirección o vuelve a la portada.</p>
+      <a class="btn" href="./">Volver a MAQNOW</a>
+    </main>
+  </body>
 </html>
