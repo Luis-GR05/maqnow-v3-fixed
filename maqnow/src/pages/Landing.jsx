@@ -18,11 +18,11 @@ const HOW = [
 
 // Ofertas de ejemplo para la demostración animada (alquiladores ficticios)
 const RACE = [
-  { name: 'Alquilador local A', km: 12, rent: 880, trans: 0, score: 97, tag: 'Recomendada' },
-  { name: 'Alquilador local B', km: 10, rent: 845, trans: 65, score: 96, tag: 'Mejor precio de alquiler' },
-  { name: 'Operador nacional C', km: 14, rent: 900, trans: 70, score: 92 },
-  { name: 'Operador nacional D', km: 42, rent: 860, trans: 125, score: 87 },
-  { name: 'Alquilador local E', km: 13, rent: 865, trans: 70, score: 85, tag: 'Entrega un día después' },
+  { name: 'Alquilador local A', km: 12, sat: '2 h', rent: 880, trans: 0, score: 97, tag: 'Recomendada' },
+  { name: 'Alquilador local B', km: 10, sat: '4 h', rent: 845, trans: 65, score: 96, tag: 'Mejor precio de alquiler' },
+  { name: 'Operador nacional C', km: 14, sat: '3 h', rent: 900, trans: 70, score: 92 },
+  { name: 'Operador nacional D', km: 42, sat: '6 h', rent: 860, trans: 125, score: 87 },
+  { name: 'Alquilador local E', km: 13, sat: '24 h', rent: 865, trans: 70, score: 85, tag: 'Entrega un día después' },
 ];
 
 export function Landing({ onAssistant }) {
@@ -106,14 +106,14 @@ export function Landing({ onAssistant }) {
       <section className="lsec split">
         <Photo src={IMG.problem} alt="Operarios en una obra" className="split-photo" />
         <div className="split-copy">
-          <Reveal as="h2">Hoy pedir precio es llamar a cinco empresas y esperar toda la mañana.</Reveal>
+          <Reveal as="h2">Hoy, pedir ofertas y disponibilidad te quita mucho tiempo.</Reveal>
           <Reveal className="versus" delay={120}>
             <div>
               <h3>Como se hace ahora</h3>
               <ul className="minus">
                 <li>Cada alquilador tiene su catálogo, su tarifa y su transporte.</li>
                 <li>Repites la misma petición por teléfono, mail y WhatsApp.</li>
-                <li>Comparas ofertas en papel, con conceptos distintos.</li>
+                <li>Haces el comparativo a mano en un Excel, con conceptos distintos en cada oferta.</li>
                 <li>Nada queda guardado para la siguiente obra.</li>
               </ul>
             </div>
@@ -121,8 +121,9 @@ export function Landing({ onAssistant }) {
               <h3>Con MAQNOW</h3>
               <ul className="plus">
                 <li>Dices una vez qué necesitas, dónde y cuándo.</li>
-                <li>Hasta 10 proveedores nacionales y locales reciben la petición.</li>
-                <li>Ves las 5 mejores ofertas en la misma tabla.</li>
+                <li>Hasta 30 proveedores de tu zona reciben la petición, para conseguirte el mejor resultado.</li>
+                <li>Si ya tienes un acuerdo con un proveedor, te lo respeta o te lo mejora.</li>
+                <li>Ves las 5 mejores ofertas ordenadas por puntuación y comparadas de un vistazo.</li>
                 <li>Aceptas con un click y todo queda en tu historial.</li>
               </ul>
             </div>
@@ -348,6 +349,7 @@ function Hero({ onStart, onAssistant }) {
           <span className="line"><span>en el alquiler</span></span>
           <span className="line"><span>de maquinaria.</span></span>
         </h1>
+        <p className="hx-lead">Una solicitud y te llegan <b>las 5 mejores ofertas</b>. Gratis.</p>
         <button className="hx-ask" onClick={onStart}>
           <span className="hx-ask-text">
             <span className="sr-only">Pide lo que necesitas, por ejemplo: {ASKS[0]}.</span>
@@ -356,7 +358,6 @@ function Hero({ onStart, onAssistant }) {
           <span className="hx-ask-go">Comenzar ya <ArrowRight size={18} aria-hidden /></span>
         </button>
         <p className="hx-sub">
-          Una solicitud y te llegan las 5 mejores ofertas. Gratis.
           <button className="hx-help" onClick={onAssistant}><MessageCircle size={16} aria-hidden /> Asistente o ayuda</button>
         </p>
       </div>
@@ -388,15 +389,15 @@ function OfferRace({ onStart }) {
               <div><dt>Inicio</dt><dd>Mañana</dd></div>
               <div><dt>Duración</dt><dd>5 días</dd></div>
             </dl>
-            <em><i /> 10 proveedores contactados</em>
+            <em><i /> 30 proveedores contactados</em>
           </div>
           <button className="btn btn-primary" onClick={onStart}>Probar con mi obra <ArrowRight size={16} /></button>
         </div>
-        <div className="race-board" role="img" aria-label="Ejemplo de comparativo con cinco ofertas ordenadas por puntuación">
-          <div className="race-legend"><span><i className="sw-a" /> Alquiler</span><span><i className="sw-b" /> Transporte</span><span>Puntuación</span></div>
+        <div className="race-board" role="img" aria-label="Ejemplo de comparativo con cinco ofertas ordenadas por puntuación: alquiler, transporte y tiempo de respuesta del servicio técnico">
+          <div className="race-legend"><span><i className="sw-a" /> Alquiler</span><span><i className="sw-b" /> Transporte</span><span><Wrench size={13} aria-hidden /> Servicio técnico</span><span>Puntuación</span></div>
           {RACE.map((o, i) => (
             <div className={`race-row ${i === 0 ? 'best' : ''}`} key={o.name} style={{ '--d': `${i * 260}ms` }}>
-              <div className="race-name"><b>{o.name}</b><small>a {o.km} km{o.tag ? ` · ${o.tag}` : ''}</small></div>
+              <div className="race-name"><b>{o.name}</b><small>a {o.km} km · <Wrench size={12} aria-hidden /> {o.sat}{o.tag ? ` · ${o.tag}` : ''}</small></div>
               <div className="race-track">
                 <i className="ra" style={{ '--w': `${(o.rent / max) * 100}%` }} />
                 <i className="rb" style={{ '--w': `${(o.trans / max) * 100}%` }} />

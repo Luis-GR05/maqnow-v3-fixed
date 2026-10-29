@@ -156,7 +156,7 @@ export const LEGAL_DOCS = [
         'Estas condiciones son condiciones generales de la contratación conforme a la Ley 7/1998. Se aceptan al crear la cuenta y puedes consultarlas y guardarlas en cualquier momento desde esta página.',
       ]],
       ['2. En qué consiste el servicio', [
-        ['El cliente describe la maquinaria que necesita, la obra y las fechas.', `${C.brand} traslada la solicitud a un máximo de diez proveedores homologados que trabajan esa maquinaria en la zona.`, 'Los proveedores responden con su disponibilidad, precio y condiciones.', `${C.brand} presenta un comparativo con las mejores ofertas, hasta cinco, y el cliente elige.`, 'Tras la aceptación, la plataforma acompaña el alquiler: entrega, incidencias, documentación, baja, recogida y facturas.'],
+        ['El cliente describe la maquinaria que necesita, la obra y las fechas.', `${C.brand} traslada la solicitud a un máximo de treinta proveedores homologados que trabajan esa maquinaria en la zona.`, 'Los proveedores responden con su disponibilidad, precio y condiciones.', `${C.brand} presenta un comparativo con las mejores ofertas, hasta cinco, y el cliente elige.`, 'Tras la aceptación, la plataforma acompaña el alquiler: entrega, incidencias, documentación, baja, recogida y facturas.'],
         `Para quien solicita maquinaria el servicio es gratuito. Las condiciones de colaboración con cada proveedor se acuerdan con él por separado.`,
       ]],
       ['3. Cómo se ordenan las ofertas', [

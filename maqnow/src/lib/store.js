@@ -9,7 +9,7 @@ import { areaOf, isStaff, STAFF } from './roles';
 import { authMessage, sb, supabaseEnabled } from './supabase';
 
 const KEY = 'maqnow-demo-v4';
-export const MAX_CONTACTED = 10; // "hasta 10 ofertas con un solo click"
+export const MAX_CONTACTED = 30; // "hasta 30 proveedores de tu zona reciben la petición"
 export const TOP_OFFERS = 5; // comparativo de las 5 mejores
 export const IVA = 0.21;
 
