@@ -3,7 +3,7 @@ import { Check, Plus, ArrowRight, ArrowLeft } from 'lucide-react';
 import { FAMILIES, familyById, PAYMENT_METHODS, PROVINCES } from '../data/catalog';
 import { actions, invoicesOf, itemsText, movements, providerById, providerStats, rankOffers, spendByMonth } from '../lib/store';
 import { eur, fmtDate, fmtDay, fmtMin, monthKey, monthLabel, todayISO } from '../lib/format';
-import { Badge, Card, Columns, Empty, Field, Kpi, PageHead, Stars, Status, Table } from '../components/ui';
+import { Badge, Card, Columns, DeliveryInfo, Empty, Field, Kpi, PageHead, Stars, Status, Table } from '../components/ui';
 import { PassportModal, docsPct } from '../components/Passport';
 
 export function ProviderPages({ s, page, id }) {
@@ -125,6 +125,7 @@ function OfferCard({ r, pid, client }) {
           <b><a className="card-link" href={`#/app/solicitud/${r.id}`}>{itemsText(r.items)}</a></b>
           <span>{client?.name} · {r.municipio} ({r.province}) · {fmtDate(r.start)} · {r.days} días · {r.delivery}</span>
           {r.notes && <span>“{r.notes}”</span>}
+          <span className="muted">La dirección exacta y el contacto en obra se comparten al aceptar tu oferta.</span>
         </div>
         <div className="row-right">
           {sent ? <span className="ok-text"><Check size={15} /> Oferta enviada: {sent.available === 'no' ? 'sin disponibilidad' : eur(sent.price + sent.transport)}</span> : <Status value="pendiente" />}
@@ -243,6 +244,10 @@ function RentalDetail({ s, rentals, fleet, id }) {
       {back}
       <PageHead title={itemsText(r.items)} sub={`${r.id} · ${s.clients.find((c) => c.id === r.clientId)?.name || 'Cliente'} · ${s.sites.find((x) => x.id === r.siteId)?.name || r.municipio}`}><Status value={r.status} /></PageHead>
       <div className="list"><RentalCard s={s} r={r} /></div>
+      <Card title="Entrega en obra">
+        <DeliveryInfo req={s.requests.find((x) => x.id === r.requestId)} />
+        {s.requests.find((x) => x.id === r.requestId)?.orderRef && <p className="sub">Incluye el número de pedido del cliente en la factura.</p>}
+      </Card>
       {machines.length > 0 && (
         <Card title="Máquinas asignadas">
           <div className="mini-list">

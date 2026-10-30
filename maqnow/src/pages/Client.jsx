@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, ArrowLeft, Download, Wrench, LogOut, Repeat, Check, Loader, Phone, Mail, MessageCircle, Trophy, Star, FileCheck2, Plus, PlusCircle } from 'lucide-react';
-import { familyById, itemLabel, PAYMENT_METHODS, PROVINCES } from '../data/catalog';
+import { familyById, itemLabel, PROVINCES } from '../data/catalog';
 import { CONTACT } from '../data/providers';
 import { actions, invoicesOf, itemsText, movements, providerById, rankOffers, setDraft, spendByMonth, stageIndex, STAGES, TOP_OFFERS, SCORE_WEIGHTS, SCORE_LABELS } from '../lib/store';
 import { addDays, downloadCSV, eur, fmtDate, fmtDay, monthKey, monthLabel, todayISO } from '../lib/format';
-import { Badge, Bars, Card, Columns, Empty, FamilyIcon, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
+import { Badge, Bars, Card, Columns, Empty, FamilyIcon, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go, DeliveryInfo } from '../components/ui';
 import { PassportModal, docsPct } from '../components/Passport';
 import { RequestWizard } from './RequestWizard';
 
@@ -405,6 +405,7 @@ function RentalDetail({ s, me, id, rentals }) {
               <div><dt>Ahorro frente a la media</dt><dd>{eur(r.saving)}</dd></div>
             </dl>
           </Card>
+          <Card title="Entrega en obra"><DeliveryInfo req={req} /></Card>
           <Card title="Proveedor">
             <p><b>{p.name}</b></p>
             <p className="muted">{p.scope} · {p.city} · servicio técnico en {p.assistanceH} h</p>
@@ -623,7 +624,6 @@ function Company({ me, s }) {
           <Field label="Persona de contacto"><input value={f.contact} onChange={set('contact')} /></Field>
           <Field label="Teléfono"><input value={f.phone} onChange={set('phone')} /></Field>
           <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
-          <Field label="Forma de pago"><select value={f.payment} onChange={set('payment')}>{PAYMENT_METHODS.map((p) => <option key={p}>{p}</option>)}</select></Field>
         </div>
         <div className="form-foot"><button className="btn btn-primary">Guardar cambios</button>{saved && <span className="ok-text"><Check size={15} /> Guardado</span>}</div>
       </form>

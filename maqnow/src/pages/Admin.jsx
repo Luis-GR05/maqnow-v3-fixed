@@ -3,7 +3,7 @@ import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing, UserPlu
 import { PAYMENT_METHODS } from '../data/catalog';
 import { actions, clientRisk, invoicesOf, itemsText, providerById, providerStats, rankOffers, spendByMonth, stageIndex, STAGES } from '../lib/store';
 import { addDays, eur, fmtDate, fmtDay, fmtMin, monthLabel, todayISO } from '../lib/format';
-import { Badge, Bars, Card, Columns, Empty, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
+import { Badge, Bars, Card, Columns, DeliveryInfo, Empty, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
 import { parseRequest, slotsToItem } from '../components/Assistant';
 import { ROLES, STAFF, PERMISSIONS, can } from '../lib/roles';
 
@@ -237,6 +237,7 @@ function RequestLog({ s, id, role }) {
               </div>
             )}
           </Card>
+          <Card title="Entrega en obra"><DeliveryInfo req={r} /></Card>
           {r.notes && <Card title="Notas del cliente"><p>{r.notes}</p></Card>}
         </div>
       </div>

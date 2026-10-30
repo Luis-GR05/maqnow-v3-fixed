@@ -97,12 +97,18 @@ export function rankOffers(req, s) {
 
 /* ---------- construcción de entidades ---------- */
 function siteFor(s, clientId, data) {
-  if (data.siteId) return data.siteId;
+  if (data.siteId) {
+    const known = s.sites.find((x) => x.id === data.siteId);
+    if (known && data.address) Object.assign(known, { address: data.address, cp: data.cp || known.cp || '', contactName: data.contactName || '', contactPhone: data.contactPhone || '' });
+    return data.siteId;
+  }
   let site = s.sites.find((x) => x.clientId === clientId && x.municipio === data.municipio && (!data.siteName || x.name === data.siteName));
   if (!site) {
     site = { id: `OBR-${pad(++s.seq.site, 3)}`, clientId, name: data.siteName || `Obra ${data.municipio}`, municipio: data.municipio, province: data.province };
     s.sites.push(site);
   }
+  // la obra recuerda la última dirección y el contacto, para no volver a escribirlos
+  if (data.address) Object.assign(site, { address: data.address, cp: data.cp || site.cp || '', contactName: data.contactName || '', contactPhone: data.contactPhone || '' });
   return site.id;
 }
 
@@ -129,6 +135,7 @@ function makeRequest(s, data, { instant = false, createdAt = Date.now() } = {}) 
     municipio: data.municipio, cp: data.cp || '', province: data.province,
     start: data.start, days: data.days, indefinite: !!data.indefinite, end: addDays(data.start, data.days),
     delivery: data.delivery || 'Transporte incluido', urgent: !!data.urgent, notes: data.notes || '',
+    address: data.address || '', contactName: data.contactName || '', contactPhone: data.contactPhone || '', orderRef: data.orderRef || '',
     status: 'buscando', createdAt, viewedAt: null, remindedAt: null, offers: [], contacted: [], byAgent: !!data.byAgent,
   };
   eligibleProviders(req, s).forEach((p, i) => {
@@ -207,6 +214,9 @@ function seed() {
   }));
   s.machines.filter((_, i) => i % 11 === 5).forEach((m) => { m.status = 'mantenimiento'; });
 
+  // direcciones y contactos de ejemplo para las obras de la demo
+  const ADDR = { Málaga: 'Calle Alemania 12', Marbella: 'Urb. Villas Marbella Este, parcela 4', Estepona: 'Avenida de España 210', 'Vélez-Málaga': 'Polígono El Trapiche, nave 8', Torremolinos: 'Palacio de Congresos, muelle de carga', Mijas: 'Urb. Mijas Golf, calle 3' };
+  const at = (municipio, n) => ({ address: ADDR[municipio] || '', contactName: 'Encargado de obra', contactPhone: `600 000 ${String(100 + n).padStart(3, '0')}` });
   const past = [
     ['CLI-001', [it('elevacion', 2, 3)], 'Málaga', 'Promoción Málaga Centro', -140, 7], ['CLI-002', [it('tierras', 0, 1), it('tierras', 5, 1, 2)], 'Marbella', null, -128, 15],
     ['CLI-001', [it('tierras', 0, 1)], 'Estepona', 'Reforma hotel Estepona', -105, 10], ['CLI-003', [it('energia', 0, 2)], 'Vélez-Málaga', null, -96, 20],
@@ -215,7 +225,7 @@ function seed() {
     ['CLI-001', [it('elevacion', 0, 1, 2)], 'Málaga', 'Promoción Málaga Centro', -27, 14],
   ];
   past.forEach(([clientId, items, municipio, siteName, off, days], i) => {
-    const req = makeRequest(s, { clientId, items, municipio, siteName, province: 'Málaga', start: addDays(t, off), days }, { instant: true, createdAt: Date.now() + (off - 2) * 864e5 });
+    const req = makeRequest(s, { clientId, items, municipio, siteName, province: 'Málaga', start: addDays(t, off), days, ...at(municipio, i) }, { instant: true, createdAt: Date.now() + (off - 2) * 864e5 });
     req.viewedAt = req.createdAt + 36e5;
     const ranked = rankOffers(req, s);
     const r = makeRental(s, req, (ranked[i % 2] || ranked[0]).providerId);
@@ -224,18 +234,18 @@ function seed() {
     r.commissionStatus = i < 6 ? 'liquidada' : 'pendiente';
     if (i % 3 !== 2) { r.review = 4 + (i % 2); s.reviews.push({ providerId: r.providerId, rentalId: r.id, stars: r.review }); }
   });
-  const live = makeRequest(s, { clientId: 'CLI-001', items: [it('tierras', 0, 1), it('energia', 0, 2)], municipio: 'Marbella', siteName: 'Villas Marbella Este', province: 'Málaga', start: addDays(t, -4), days: 15 }, { instant: true, createdAt: Date.now() - 6 * 864e5 });
+  const live = makeRequest(s, { clientId: 'CLI-001', items: [it('tierras', 0, 1), it('energia', 0, 2)], municipio: 'Marbella', siteName: 'Villas Marbella Este', province: 'Málaga', start: addDays(t, -4), days: 15, orderRef: 'PED-2026-0153', ...at('Marbella', 20) }, { instant: true, createdAt: Date.now() - 6 * 864e5 });
   live.viewedAt = live.createdAt + 2 * 36e5;
   const lr = makeRental(s, live, rankOffers(live, s)[0].providerId);
   lr.status = 'en alquiler';
   s.demoProviderId = lr.providerId; // el invitado-proveedor ve un proveedor con actividad
-  const live2 = makeRequest(s, { clientId: 'CLI-002', items: [it('manutencion', 3, 3)], municipio: 'Málaga', province: 'Málaga', start: addDays(t, -9), days: 30 }, { instant: true, createdAt: Date.now() - 11 * 864e5 });
+  const live2 = makeRequest(s, { clientId: 'CLI-002', items: [it('manutencion', 3, 3)], municipio: 'Málaga', province: 'Málaga', start: addDays(t, -9), days: 30, ...at('Málaga', 21) }, { instant: true, createdAt: Date.now() - 11 * 864e5 });
   makeRental(s, live2, rankOffers(live2, s)[0].providerId).status = 'en alquiler';
-  const soon = makeRequest(s, { clientId: 'CLI-001', items: [it('elevacion', 0, 2)], municipio: 'Málaga', siteName: 'Promoción Málaga Centro', province: 'Málaga', start: addDays(t, 2), days: 12 }, { instant: true, createdAt: Date.now() - 26 * 36e5 });
+  const soon = makeRequest(s, { clientId: 'CLI-001', items: [it('elevacion', 0, 2)], municipio: 'Málaga', siteName: 'Promoción Málaga Centro', province: 'Málaga', start: addDays(t, 2), days: 12, ...at('Málaga', 22) }, { instant: true, createdAt: Date.now() - 26 * 36e5 });
   soon.viewedAt = soon.createdAt + 36e5;
   makeRental(s, soon, rankOffers(soon, s)[0].providerId);
   s.incidents.push({ id: 'INC-00030', rentalId: lr.id, type: 'Fallo hidráulico', desc: 'Pierde aceite por un latiguillo del brazo.', urgent: true, level: 3, status: 'en curso', createdAt: Date.now() - 20 * 36e5, resolvedAt: null });
-  makeRequest(s, { clientId: 'CLI-001', items: [it('elevacion', 3, 3)], municipio: 'Marbella', siteName: 'Villas Marbella Este', cp: '29600', province: 'Málaga', start: addDays(t, 3), days: 10 }, { instant: true, createdAt: Date.now() - 3 * 36e5 });
+  makeRequest(s, { clientId: 'CLI-001', items: [it('elevacion', 3, 3)], municipio: 'Marbella', siteName: 'Villas Marbella Este', cp: '29600', province: 'Málaga', start: addDays(t, 3), days: 10, ...at('Marbella', 23) }, { instant: true, createdAt: Date.now() - 3 * 36e5 });
   s.favorites.push({ id: 'FAV-1', clientId: 'CLI-001', item: it('elevacion', 2, 3) }, { id: 'FAV-2', clientId: 'CLI-001', item: it('tierras', 0, 1) }, { id: 'FAV-3', clientId: 'CLI-001', item: it('energia', 0, 2) });
   return s;
 }

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Plus, Trash2, Check, Zap, MessageCircle } from 'lucide-react';
-import { FAMILIES, familyById, itemLabel, PROVINCES, PAYMENT_METHODS } from '../data/catalog';
+import { FAMILIES, familyById, itemLabel, PROVINCES } from '../data/catalog';
 import { FAMILY_IMG } from '../data/images';
 import { actions, eligibleProviders, takeDraft } from '../lib/store';
 import { addDays, fmtDate, todayISO } from '../lib/format';
@@ -17,10 +17,11 @@ export function RequestWizard({ s, clientId, onAssistant }) {
   const [items, setItems] = useState(draft.items || []);
   const [cur, setCur] = useState({ family: draft.familyPreset || '', type: '', specs: {}, qty: 1 });
   const [site, setSite] = useState({
-    siteId: draft.siteId || '', siteName: '', municipio: draft.municipio || '', cp: '', province: draft.province || 'Málaga',
+    siteId: draft.siteId || '', siteName: '', address: '', municipio: draft.municipio || '', cp: '', province: draft.province || 'Málaga',
+    contactName: '', contactPhone: '', orderRef: '',
     start: draft.start || addDays(todayISO(), 1), days: draft.days || 7, indefinite: false, delivery: 'Transporte incluido', urgent: false, notes: '',
   });
-  const [company, setCompany] = useState({ id: profile.id, name: profile.name, cif: profile.cif, contact: profile.contact, phone: profile.phone, email: profile.email, payment: profile.payment });
+  const [company, setCompany] = useState({ id: profile.id, name: profile.name, cif: profile.cif, contact: profile.contact, phone: profile.phone, email: profile.email });
   const [err, setErr] = useState('');
 
   const fam = cur.family ? familyById(cur.family) : null;
@@ -33,7 +34,9 @@ export function RequestWizard({ s, clientId, onAssistant }) {
   const reach = allItems.length ? eligibleProviders({ items: allItems, province: site.province }, s).length : 0;
   const pickSite = (id) => {
     const x = sites.find((o) => o.id === id);
-    setSite(x ? { ...site, siteId: id, municipio: x.municipio, province: x.province } : { ...site, siteId: '' });
+    setSite(x
+      ? { ...site, siteId: id, municipio: x.municipio, province: x.province, address: x.address || '', cp: x.cp || '', contactName: x.contactName || '', contactPhone: x.contactPhone || '' }
+      : { ...site, siteId: '', address: '', cp: '', contactName: '', contactPhone: '' });
   };
 
   const next = () => {
@@ -43,7 +46,9 @@ export function RequestWizard({ s, clientId, onAssistant }) {
       if (curReady) addItem();
     }
     if (step === 2) {
+      if (site.delivery === 'Transporte incluido' && !site.address.trim()) return setErr('Indica la dirección de entrega de la obra.');
       if (!site.municipio.trim()) return setErr('Indica el municipio de la obra.');
+      if (!site.contactName.trim() || site.contactPhone.replace(/\D/g, '').length < 9) return setErr('Indica quién recibe la máquina en la obra y su móvil.');
       if (!site.start || site.days < 1) return setErr('Indica fecha de inicio y duración.');
     }
     setStep(step + 1);
@@ -137,9 +142,12 @@ export function RequestWizard({ s, clientId, onAssistant }) {
               </Field>
             )}
             {!site.siteId && <Field label="Nombre de la obra (opcional)"><input value={site.siteName} onChange={(e) => setSite({ ...site, siteName: e.target.value })} placeholder="Reforma calle Larios" /></Field>}
+            <Field label={site.delivery === 'Transporte incluido' ? 'Dirección de entrega' : 'Dirección de la obra (opcional)'} wide><input value={site.address} onChange={(e) => setSite({ ...site, address: e.target.value })} placeholder="Calle, número, polígono o referencia de acceso" autoComplete="street-address" /></Field>
             <Field label="Municipio"><input value={site.municipio} onChange={(e) => setSite({ ...site, municipio: e.target.value })} placeholder="Marbella" disabled={!!site.siteId} /></Field>
             <Field label="Código postal"><input value={site.cp} onChange={(e) => setSite({ ...site, cp: e.target.value })} placeholder="29600" inputMode="numeric" /></Field>
             <Field label="Provincia"><select value={site.province} disabled={!!site.siteId} onChange={(e) => setSite({ ...site, province: e.target.value })}>{PROVINCES.map((p) => <option key={p}>{p}</option>)}</select></Field>
+            <Field label="Contacto en obra"><input value={site.contactName} onChange={(e) => setSite({ ...site, contactName: e.target.value })} placeholder="Nombre de quien recibe la máquina" autoComplete="name" /></Field>
+            <Field label="Móvil del contacto"><input type="tel" value={site.contactPhone} onChange={(e) => setSite({ ...site, contactPhone: e.target.value })} placeholder="600 000 000" inputMode="tel" autoComplete="tel" /></Field>
             <Field label="Fecha de inicio"><input type="date" min={todayISO()} value={site.start} onChange={(e) => setSite({ ...site, start: e.target.value })} /></Field>
             <Field label="Días previstos"><input type="number" min="1" value={site.days} onChange={(e) => setSite({ ...site, days: e.target.value })} /></Field>
             <Field label="Entrega"><select value={site.delivery} onChange={(e) => setSite({ ...site, delivery: e.target.value })}><option>Transporte incluido</option><option>Recogida en proveedor</option></select></Field>
@@ -147,6 +155,8 @@ export function RequestWizard({ s, clientId, onAssistant }) {
           <p className="hint">Fin estimado: {fmtDate(addDays(site.start, +site.days || 0))}</p>
           <label className="check"><input type="checkbox" checked={site.indefinite} onChange={(e) => setSite({ ...site, indefinite: e.target.checked })} /> Alquiler abierto: hasta finalizar la obra (daré de baja la máquina cuando termine)</label>
           <label className="check"><input type="checkbox" checked={site.urgent} onChange={(e) => setSite({ ...site, urgent: e.target.checked })} /> <Zap size={15} /> Es urgente</label>
+          <Field label="Nº de pedido u obra (opcional)" wide><input value={site.orderRef} onChange={(e) => setSite({ ...site, orderRef: e.target.value })} placeholder="El código que usáis internamente, por ejemplo PED-2026-0153" /></Field>
+          <p className="hint">Si lo indicas, aparecerá en el alquiler y el proveedor lo incluirá en la factura.</p>
           <Field label="Información adicional (opcional)" wide><textarea rows="3" value={site.notes} onChange={(e) => setSite({ ...site, notes: e.target.value })} placeholder="Accesos, horarios de descarga, condiciones de la obra…" /></Field>
         </section>
       )}
@@ -161,12 +171,12 @@ export function RequestWizard({ s, clientId, onAssistant }) {
             <Field label="Persona de contacto"><input value={company.contact} onChange={(e) => setCompany({ ...company, contact: e.target.value })} /></Field>
             <Field label="Teléfono"><input type="tel" value={company.phone} onChange={(e) => setCompany({ ...company, phone: e.target.value })} /></Field>
             <Field label="Email"><input type="email" value={company.email} onChange={(e) => setCompany({ ...company, email: e.target.value })} /></Field>
-            <Field label="Forma de pago preferida"><select value={company.payment} onChange={(e) => setCompany({ ...company, payment: e.target.value })}>{PAYMENT_METHODS.map((p) => <option key={p}>{p}</option>)}</select></Field>
           </div>
           <div className="summary">
             <b>Resumen</b>
             <ul>{items.map((it, i) => <li key={i}>{it.qty} × {itemLabel(it)}</li>)}</ul>
-            <span>{site.municipio} ({site.province}), desde el {fmtDate(site.start)}, {site.days} días{site.indefinite ? ' (abierto)' : ''}. {site.delivery}.</span>
+            <span>{site.address ? `${site.address}, ` : ''}{site.municipio} ({site.province}), desde el {fmtDate(site.start)}, {site.days} días{site.indefinite ? ' (abierto)' : ''}. {site.delivery}.</span>
+            <span>Recibe en obra: {site.contactName} · {site.contactPhone}{site.orderRef ? `. Pedido ${site.orderRef}` : ''}.</span>
           </div>
         </form>
       )}
@@ -175,7 +185,7 @@ export function RequestWizard({ s, clientId, onAssistant }) {
 
       <div className="wizard-foot">
         {step > 1 ? <button type="button" className="btn btn-ghost" onClick={() => { setErr(''); setStep(step - 1); }}><ArrowLeft size={16} /> Atrás</button> : <span />}
-        <span className="reach">{reach > 0 && `Pediremos oferta a ${reach} proveedores`}</span>
+        <span className="reach">{reach > 0 && 'Pediremos oferta a todos los proveedores de tu zona que tienen esta maquinaria'}</span>
         {step < 3
           ? <button key="next" type="button" className="btn btn-primary" onClick={next}>Continuar <ArrowRight size={16} /></button>
           : <button key="send" type="submit" className="btn btn-primary btn-lg" form="company-form">Solicitar ofertas</button>}

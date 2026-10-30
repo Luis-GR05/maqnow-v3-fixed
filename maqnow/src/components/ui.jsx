@@ -89,6 +89,22 @@ export function Field({ label, children, wide }) {
   );
 }
 
+// Datos de entrega de una solicitud: dirección, contacto en obra y número de pedido del cliente
+export function DeliveryInfo({ req, site }) {
+  if (!req) return null;
+  const place = [req.address, [req.cp, req.municipio].filter(Boolean).join(' '), req.province].filter(Boolean).join(', ');
+  const tel = (req.contactPhone || '').replace(/[^\d+]/g, '');
+  return (
+    <dl className="specs one">
+      {site && <div><dt>Obra</dt><dd>{site}</dd></div>}
+      <div><dt>{req.delivery === 'Recogida en proveedor' ? 'Obra' : 'Dirección de entrega'}</dt><dd>{place || '—'}</dd></div>
+      <div><dt>Contacto en obra</dt><dd>{req.contactName || '—'}{req.contactPhone && <> · <a href={`tel:${tel}`}>{req.contactPhone}</a></>}</dd></div>
+      {req.orderRef && <div><dt>Nº de pedido / obra</dt><dd>{req.orderRef}</dd></div>}
+      <div><dt>Entrega</dt><dd>{req.delivery}</dd></div>
+    </dl>
+  );
+}
+
 export function PageHead({ title, sub, children }) {
   return (
     <div className="page-head">
