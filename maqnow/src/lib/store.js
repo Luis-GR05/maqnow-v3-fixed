@@ -8,7 +8,7 @@ import { addDays, todayISO, monthKey } from './format';
 import { areaOf, isStaff, STAFF } from './roles';
 import { authMessage, sb, supabaseEnabled } from './supabase';
 
-const KEY = 'maqnow-demo-v4';
+const KEY = 'maqnow-demo-v5';
 export const MAX_CONTACTED = 30; // "hasta 30 proveedores de tu zona reciben la petición"
 export const TOP_OFFERS = 5; // comparativo de las 5 mejores
 export const IVA = 0.21;
@@ -190,7 +190,7 @@ function seed() {
     seq: { req: 240, rental: 118, inc: 30, client: 4, site: 0, machine: 480, user: 0, prov: 0 },
     settings: { autoRespond: true },
     session: null, users: [],
-    providers: PROVIDERS.map((p) => ({ ...p, contactName: '', phone: '', email: '', plan: 'Gratis', status: 'homologado' })),
+    providers: PROVIDERS.map((p) => ({ contactName: '', phone: '', email: '', plan: 'Gratis', ...p, status: p.status || 'homologado' })),
     clients: [
       { id: 'CLI-001', name: 'Reformas y Obras Litoral S.L.', cif: 'B00000001', contact: 'Responsable de compras', phone: '600 000 001', email: 'compras@ejemplo.es', payment: 'Transferencia a 30 días', creditLimit: 12000, avgPayDays: 34, since: '2026-03-10' },
       { id: 'CLI-002', name: 'Construcciones Guadalhorce S.A.', cif: 'A00000002', contact: 'Jefe de obra', phone: '600 000 002', email: 'obra@ejemplo.es', payment: 'Confirming', creditLimit: 30000, avgPayDays: 58, since: '2026-02-01' },

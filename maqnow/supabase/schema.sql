@@ -83,7 +83,8 @@ create table public.providers (
   response_min     integer not null default 30 check (response_min > 0), -- tiempo de respuesta habitual
   assistance_hours integer not null default 4 check (assistance_hours > 0),
   payment_terms    text not null default 'Transferencia a 30 días',
-  contact_name     text,
+  specialty        text,                                                  -- actividad tal como la describe el proveedor
+  contact_name     text,                                                  -- contacto: solo equipo MAQNOW y el propio proveedor (vista provider_contacts)
   phone            text,
   email            text,
   plan             text not null default 'Gratis',
@@ -95,6 +96,8 @@ create table public.provider_internal (
   provider_id    uuid primary key references public.providers (id) on delete cascade,
   commission_pct numeric(4, 2) not null default 5 check (commission_pct between 0 and 30),
   reliability    integer not null default 85 check (reliability between 0 and 100),
+  level          text check (level in ('A', 'B', 'C')),  -- prioridad comercial
+  source         text,                                   -- de dónde salen los datos (web oficial, directorio…)
   notes          text
 );
 
@@ -499,7 +502,7 @@ create trigger on_offer_saved before insert or update on public.offers
 
 -- Envía la solicitud a los proveedores compatibles: homologados, que sirven en la provincia
 -- y cubren todas las familias pedidas. Hasta 10, ordenados por valoración y fiabilidad.
-create or replace function public.dispatch_request(p_request uuid, p_max integer default 10) returns integer
+create or replace function public.dispatch_request(p_request uuid, p_max integer default 30) returns integer
 language plpgsql security definer set search_path = public as $$
 declare
   r public.requests;
@@ -521,7 +524,7 @@ begin
                       where i.request_id = r.id
                         and not exists (select 1 from public.provider_families pf where pf.provider_id = p.id and pf.family_id = i.family_id))
    order by p.rating * 20 + coalesce(pi.reliability, 80) desc
-   limit greatest(1, least(p_max, 10))
+   limit greatest(1, least(p_max, 30))
   on conflict do nothing;
   get diagnostics n = row_count;
   return n;
@@ -849,6 +852,18 @@ grant select, insert, update, delete on all tables in schema public to authentic
 grant usage, select on all sequences in schema public to authenticated;
 revoke insert, update, delete on public.audit_log from authenticated;
 revoke insert, delete on public.rentals from authenticated;
+
+-- El teléfono y el email de los proveedores no los ve el cliente: se leen por la vista provider_contacts,
+-- que solo devuelve filas al equipo MAQNOW y al propio proveedor.
+revoke select on public.providers from authenticated;
+grant select (id, name, scope, status, city, province, base_km, rating, response_min, assistance_hours, payment_terms, specialty, plan, created_at)
+  on public.providers to authenticated;
+create or replace view public.provider_contacts with (security_barrier = true) as
+select id as provider_id, contact_name, phone, email
+  from public.providers
+ where public.is_staff() or public.is_provider_member(id);
+revoke all on public.provider_contacts from anon, authenticated;
+grant select on public.provider_contacts to authenticated;
 
 revoke execute on all functions in schema public from public, anon;
 grant execute on function public.my_role(), public.has_role(public.app_role[]), public.is_staff(),

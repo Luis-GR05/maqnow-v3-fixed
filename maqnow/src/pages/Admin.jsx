@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing, UserPlus, X } from 'lucide-react';
-import { PAYMENT_METHODS } from '../data/catalog';
+import { PAYMENT_METHODS, familyById } from '../data/catalog';
 import { actions, clientRisk, invoicesOf, itemsText, providerById, providerStats, rankOffers, spendByMonth, stageIndex, STAGES } from '../lib/store';
 import { addDays, eur, fmtDate, fmtDay, fmtMin, monthLabel, todayISO } from '../lib/format';
 import { Badge, Bars, Card, Columns, DeliveryInfo, Empty, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
@@ -290,7 +290,7 @@ function Providers({ s, role }) {
           <React.Fragment key={p.id}>
             <tr>
               <td className="num">{i + 1}</td>
-              <td><b>{p.name}</b> {p.status === 'pendiente' ? <Badge tone="warn">Pendiente de homologar</Badge> : p.manual ? <Badge tone="info">Registrado</Badge> : null}</td>
+              <td><b>{p.name}</b> {p.level && <Badge tone={p.level === 'A' ? 'ok' : 'neutral'}>Nivel {p.level}</Badge>} {p.status === 'pendiente' ? <Badge tone="warn">Pendiente de homologar</Badge> : p.manual ? <Badge tone="info">Registrado</Badge> : null}</td>
               <td>{p.scope} · {p.city}</td>
               <td><div className="index"><i style={{ width: `${st.index}%` }} /><span>{st.index}</span></div></td>
               <td><Stars value={st.rating} /> {st.rating.toFixed(1).replace('.', ',')}</td>
@@ -306,11 +306,13 @@ function Providers({ s, role }) {
             {open === p.id && (
               <tr className="detail"><td colSpan="12">
                 <div className="detail-grid">
-                  <div><b>Especialidades</b><p>{p.families.join(', ')}</p></div>
+                  <div><b>Actividad</b><p>{p.specialty || '—'}</p></div>
+                  <div><b>Familias que recibe</b><p>{p.families.map((f) => familyById(f)?.name || f).join(', ')}</p></div>
                   <div><b>Zona</b><p>{p.scope === 'Nacional' ? 'Toda España' : (p.provinces || []).join(', ')}</p></div>
                   <div><b>Flota registrada</b><p>{s.machines.filter((m) => m.providerId === p.id).length} máquinas</p></div>
                   <div><b>Condiciones</b><p>{p.payment} · servicio técnico en {p.assistanceH} h</p></div>
                   <div><b>Contacto</b><p>{[p.contactName, p.phone, p.email].filter(Boolean).join(' · ') || 'Sin datos de contacto todavía'}</p></div>
+                  {p.source && <div><b>Fuente del dato</b><p>{p.source}</p></div>}
                   <div><b>Desglose del índice</b><p>{Object.entries(st.parts).map(([k, v]) => `${k} ${Math.round(v)}`).join(' · ')}</p></div>
                 </div>
               </td></tr>

@@ -36,7 +36,7 @@ const C = COMPANY;
 
 // Almacenamiento que usa la web. Lo leen la política de cookies y el panel de configuración.
 export const STORAGE = [
-  { name: 'maqnow-demo-v4', kind: 'Técnica', where: 'Almacenamiento local', who: C.brand, time: 'Hasta que cierres sesión o borres los datos del navegador', why: 'Mantiene tu sesión y los datos con los que trabajas en la aplicación.' },
+  { name: 'maqnow-demo-v5', kind: 'Técnica', where: 'Almacenamiento local', who: C.brand, time: 'Hasta que cierres sesión o borres los datos del navegador', why: 'Mantiene tu sesión y los datos con los que trabajas en la aplicación.' },
   { name: 'maqnow-consent', kind: 'Técnica', where: 'Almacenamiento local', who: C.brand, time: '24 meses', why: 'Recuerda qué has decidido sobre las cookies para no volver a preguntártelo.' },
   { name: 'maqnow-nav', kind: 'Técnica', where: 'Almacenamiento local', who: C.brand, time: 'Hasta que borres los datos del navegador', why: 'Recuerda si prefieres el menú lateral reducido.' },
   { name: 'sb-…-auth-token', kind: 'Técnica', where: 'Almacenamiento local', who: 'Supabase (por cuenta de MAQNOW)', time: 'Mientras dure la sesión', why: 'Te mantiene identificado si entras con una cuenta registrada.' },
