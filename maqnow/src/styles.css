@@ -51,6 +51,21 @@
 
 html {
   scroll-behavior: smooth;
+  caret-color: transparent;
+  cursor: default;
+}
+
+input,
+textarea,
+select,
+[contenteditable]:not([contenteditable="false"]) {
+  caret-color: auto;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+textarea,
+[contenteditable]:not([contenteditable="false"]) {
+  cursor: text;
 }
 
 body {
