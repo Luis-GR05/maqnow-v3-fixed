@@ -394,7 +394,7 @@ export const actions = {
         const c = await sb();
         const { data, error } = await c.auth.signUp({
           email, password: f.password,
-          options: { data: { full_name: f.name.trim(), role: f.role, company: f.company.trim(), cif: f.cif || '', phone: f.phone || '', province: f.province || 'Málaga', families: f.families || [] } },
+          options: { data: { full_name: f.name.trim(), role: f.role, company: f.company.trim(), cif: f.cif || '', phone: f.phone || '', province: f.province || 'Málaga', families: f.families || [], ...(f.claimToken ? { claim_token: f.claimToken } : {}) } },
         });
         if (error) return { error: authMessage(error) };
         if (!data.session) return { info: 'Te hemos enviado un email para confirmar la cuenta. Ábrelo y vuelve para entrar.' };

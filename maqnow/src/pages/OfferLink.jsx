@@ -1,64 +1,58 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Clock, MapPin, CalendarDays, Truck, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarDays, Clock, LogIn, MapPin, UserPlus } from 'lucide-react';
 import { Logo } from '../components/Logo';
-import { Field } from '../components/ui';
+import { go } from '../components/ui';
 import { Loading } from '../components/Screens';
-import { linkSubmit, linkView } from '../lib/remote';
+import { linkView } from '../lib/remote';
+import { actions, isRemote, useStore } from '../lib/store';
 import { supabaseEnabled } from '../lib/supabase';
-import { addDays, eur, fmtDate } from '../lib/format';
+import { addDays, fmtDate } from '../lib/format';
 import { SITE } from '../data/site';
 
-// Página que abre el proveedor desde el enlace de su email o WhatsApp: ve la petición y envía su
-// precio sin crear cuenta. El enlace es personal (uno por proveedor y solicitud).
+// Página del enlace que llega al proveedor en el email de aviso. No se oferta aquí: lleva a su panel.
+//  · Con su cuenta abierta → directamente a la solicitud en su panel.
+//  · Con cuenta pero sin sesión → a entrar (y vuelve aquí).
+//  · Sin cuenta todavía → alta gratuita vinculada a su ficha de proveedor (claim_token).
 export function OfferLink({ token }) {
+  const s = useStore();
   const [data, setData] = useState(undefined); // undefined: cargando · null: enlace no válido
-  const [f, setF] = useState({ available: 'si', price: '', transport: '', deposit: '', delayDays: 1, notes: '' });
-  const [edit, setEdit] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
+  useEffect(() => {
+    if (!supabaseEnabled) { setData(null); return; }
+    linkView(token).then(setData).catch(() => setData(null));
+  }, [token]);
 
-  const load = () => linkView(token).then((d) => {
-    setData(d);
-    if (d?.offer) {
-      const o = d.offer;
-      setF({ available: o.availability, price: o.availability === 'no' ? '' : +o.price, transport: +o.transport, deposit: +o.deposit, delayDays: o.delay_days || 1, notes: o.notes || '' });
-      setEdit(false);
-    }
-  }).catch(() => setData(null));
-  useEffect(() => { if (supabaseEnabled) load(); else setData(null); }, [token]);
+  const ss = s.session;
+  const waiting = isRemote(s) && !ss.live;
+  const mine = data && isRemote(s) && ss.live && ss.role === 'proveedor' && ss.providerId === data.provider_id;
+  useEffect(() => { if (mine) go(`/app/solicitud/${data.code}`); }, [mine]);
 
-  const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setErr(''); };
-  const send = async (e) => {
-    e.preventDefault();
-    if (f.available !== 'no' && !(+f.price > 0)) return setErr('Indica el precio del alquiler.');
-    setBusy(true);
-    try {
-      await linkSubmit(token, { ...f, price: +f.price || 0, transport: +f.transport || 0, delayDays: +f.delayDays || 1 });
-      await load();
-      setEdit(false);
-    } catch (x) { setErr(x?.message || 'No se ha podido enviar. Inténtalo de nuevo.'); }
-    setBusy(false);
+  const here = `/oferta/${token}`;
+  const login = () => { sessionStorage.setItem('maqnow-next', here); go('/acceso'); };
+  const register = () => {
+    sessionStorage.setItem('maqnow-next', here);
+    sessionStorage.setItem('maqnow-claim', JSON.stringify({ token, provider: data.provider, email: data.email || '' }));
+    go('/registro/proveedor');
   };
 
   let body;
-  if (data === undefined) body = <Loading />;
+  if (data === undefined || waiting || mine) body = <Loading />;
   else if (data === null) {
     body = (
       <section className="card offer-link-msg">
         <AlertTriangle size={28} aria-hidden />
         <h1>Enlace no válido</h1>
-        <p>Este enlace no existe o ha caducado. Si te ha llegado una solicitud de {SITE.name}, contesta al mensaje y te enviamos uno nuevo.</p>
+        <p>Este enlace no existe o ha caducado. Entra en tu panel de {SITE.name} para ver tus solicitudes.</p>
+        <a className="btn btn-primary" href="#/acceso">Entrar</a>
       </section>
     );
   } else {
-    const o = data.offer;
-    const total = o && o.availability !== 'no' ? +o.price + +o.transport : 0;
+    const other = ss && !ss.guest;
     body = (
       <>
         <header className="offer-link-head">
           <span className="code">{data.code}{data.urgent ? ' · URGENTE' : ''}</span>
-          <h1>Solicitud de alquiler para {data.provider.name}</h1>
-          <p>Un cliente de {SITE.name} necesita esta maquinaria. Indica si la tienes disponible y tu precio: el cliente compara las ofertas y elige.</p>
+          <h1>Nueva solicitud para {data.provider}</h1>
+          <p>Un cliente de {SITE.name} necesita esta maquinaria. Mira los detalles y envía tu oferta desde tu panel de proveedor.</p>
         </header>
 
         <section className="card offer-link-req">
@@ -71,61 +65,31 @@ export function OfferLink({ token }) {
             ))}
           </ul>
           <dl className="offer-link-facts">
-            <div><dt><MapPin size={15} aria-hidden /> Obra</dt><dd>{data.municipality} ({data.province}){data.postal_code ? ` · ${data.postal_code}` : ''}</dd></div>
-            <div><dt><CalendarDays size={15} aria-hidden /> Fechas</dt><dd>{fmtDate(data.start_date)} – {fmtDate(addDays(data.start_date, data.days))} · {data.days} días{data.indefinite ? ' (abierto hasta fin de obra)' : ''}</dd></div>
-            <div><dt><Truck size={15} aria-hidden /> Entrega</dt><dd>{data.delivery === 'recogida_en_proveedor' ? 'El cliente recoge en tu base' : 'Transporte a obra (indícalo en tu precio)'}</dd></div>
+            <div><dt><MapPin size={15} aria-hidden /> Obra</dt><dd>{data.municipality} ({data.province})</dd></div>
+            <div><dt><CalendarDays size={15} aria-hidden /> Fechas</dt><dd>{fmtDate(data.start_date)} – {fmtDate(addDays(data.start_date, data.days))} · {data.days} días</dd></div>
           </dl>
-          {data.notes && <p className="offer-link-notes">“{data.notes}”</p>}
-          {!data.site && <p className="muted">La dirección exacta y el contacto en obra se comparten si el cliente elige tu oferta.</p>}
         </section>
 
-        {data.won && data.site && (
-          <section className="card offer-link-won">
-            <h2><Check size={18} aria-hidden /> El cliente ha elegido tu oferta</h2>
-            <dl className="offer-link-facts">
-              <div><dt>Cliente</dt><dd>{data.site.client}</dd></div>
-              <div><dt>Dirección</dt><dd>{data.site.address || '—'}</dd></div>
-              <div><dt>Contacto en obra</dt><dd>{data.site.contact_name || '—'}{data.site.contact_phone ? ` · ${data.site.contact_phone}` : ''}</dd></div>
-              {data.site.order_ref && <div><dt>Referencia</dt><dd>{data.site.order_ref}</dd></div>}
-            </dl>
+        {!data.open ? (
+          <section className="card offer-link-msg small"><Clock size={20} aria-hidden /><p>Esta solicitud ya está cerrada{data.offer_sent ? '. Gracias por tu oferta.' : '.'}</p></section>
+        ) : other ? (
+          <section className="card offer-link-cta">
+            <p>Has entrado con otra cuenta ({ss.email || ss.name}). Para ofertar, entra con la cuenta de {data.provider}.</p>
+            <button className="btn btn-primary" onClick={() => { actions.logout(); login(); }}><LogIn size={16} aria-hidden /> Cambiar de cuenta</button>
           </section>
-        )}
-
-        {!data.open && !data.won && (
-          <section className="card offer-link-msg small"><Clock size={20} aria-hidden /><p>Esta solicitud ya está cerrada{o ? '. Gracias por tu oferta.' : '.'}</p></section>
-        )}
-
-        {o && !edit && (
-          <section className="card offer-link-sent">
-            <div>
-              <b><Check size={16} aria-hidden /> Oferta enviada</b>
-              <span>{o.availability === 'no' ? 'Sin disponibilidad' : `${eur(total)} sin IVA (alquiler ${eur(+o.price)} + transporte ${eur(+o.transport)}) · fianza ${eur(+o.deposit)}${o.availability === 'parcial' ? ` · entrega con ${o.delay_days} días de retraso` : ''}`}</span>
-            </div>
-            {data.open && <button className="btn btn-ghost btn-sm" onClick={() => setEdit(true)}>Modificar oferta</button>}
+        ) : data.claimed ? (
+          <section className="card offer-link-cta">
+            <p>{data.offer_sent ? 'Ya has enviado tu oferta. Puedes revisarla o modificarla en tu panel.' : 'Entra en tu panel para enviar tu oferta: disponibilidad, precio y transporte.'}</p>
+            <button className="btn btn-primary btn-lg" onClick={login}><LogIn size={18} aria-hidden /> Entrar y ofertar <ArrowRight size={18} aria-hidden /></button>
           </section>
-        )}
-
-        {data.open && edit && (
-          <form className="card inline-form offer-link-form" onSubmit={send}>
-            <h2>{o ? 'Modifica tu oferta' : 'Tu oferta'}</h2>
-            <Field label="Disponibilidad">
-              <select value={f.available} onChange={set('available')}>
-                <option value="si">Disponible en la fecha</option><option value="parcial">Disponible con retraso</option><option value="no">No disponible</option>
-              </select>
-            </Field>
-            {f.available === 'parcial' && <Field label="Días de retraso"><input type="number" min="1" value={f.delayDays} onChange={set('delayDays')} /></Field>}
-            {f.available !== 'no' && <>
-              <Field label="Precio del alquiler, todo el periodo (€ sin IVA)"><input required type="number" min="1" inputMode="decimal" value={f.price} onChange={set('price')} /></Field>
-              <Field label="Transporte ida y vuelta (€)"><input type="number" min="0" inputMode="decimal" value={f.transport} onChange={set('transport')} placeholder="0 si va incluido" /></Field>
-              <Field label="Fianza (€)"><input type="number" min="0" inputMode="decimal" value={f.deposit} onChange={set('deposit')} placeholder="Opcional" /></Field>
-            </>}
-            <Field label="Observaciones" wide><input value={f.notes} onChange={set('notes')} placeholder="Modelo, condiciones, horario de entrega…" /></Field>
-            {err && <p className="error" role="alert">{err}</p>}
+        ) : (
+          <section className="card offer-link-cta">
+            <p><b>Activa tu panel de proveedor (gratis, un minuto).</b> Desde él envías las ofertas, ves si el cliente te elige y gestionas entregas y recogidas. Tu cuenta queda vinculada a la ficha de {data.provider}.</p>
             <div className="offer-link-actions">
-              <button className="btn btn-primary" disabled={busy}>{busy ? 'Enviando…' : 'Enviar oferta'}</button>
-              {o && <button type="button" className="btn btn-ghost" onClick={() => setEdit(false)}>Cancelar</button>}
+              <button className="btn btn-primary btn-lg" onClick={register}><UserPlus size={18} aria-hidden /> Activar mi cuenta y ofertar</button>
+              <button className="btn btn-ghost" onClick={login}>Ya tengo cuenta</button>
             </div>
-          </form>
+          </section>
         )}
       </>
     );

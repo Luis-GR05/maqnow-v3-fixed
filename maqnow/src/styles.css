@@ -6913,3 +6913,12 @@ h3,
   font-size: 13px;
   color: var(--muted);
 }
+
+.offer-link-cta p {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.offer-link-cta .offer-link-actions {
+  flex-wrap: wrap;
+}

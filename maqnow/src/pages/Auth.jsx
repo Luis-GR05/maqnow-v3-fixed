@@ -22,10 +22,14 @@ function strength(pw) {
 }
 const STRENGTH = ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'];
 
+// Llegada desde el email de aviso a un proveedor: alta vinculada a su ficha (claim) y vuelta al enlace (next)
+const readJSON = (k) => { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch { return null; } };
+
 export function Auth({ mode = 'acceso', preset }) {
   const isReg = mode === 'registro';
+  const [claim] = useState(() => (isReg && preset === 'proveedor' ? readJSON('maqnow-claim') : null));
   const [role, setRole] = useState(preset === 'proveedor' ? 'proveedor' : 'cliente');
-  const [f, setF] = useState({ name: '', company: '', cif: '', phone: '', email: '', password: '', province: 'Málaga', families: [], terms: false });
+  const [f, setF] = useState({ name: '', company: claim?.provider || '', cif: '', phone: '', email: claim?.email || '', password: '', province: 'Málaga', families: [], terms: false });
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState(null); // { tone, text }
   const [busy, setBusy] = useState(false);
@@ -45,7 +49,7 @@ export function Auth({ mode = 'acceso', preset }) {
       if (role === 'cliente' && f.cif.trim() && !CIF_RE.test(f.cif.trim())) e.cif = 'El CIF no tiene un formato válido (ejemplo: B12345678).';
       if (f.password.length < 8) e.password = 'Usa al menos 8 caracteres.';
       else if (score < 2) e.password = 'Añade mayúsculas, números o símbolos para hacerla más segura.';
-      if (role === 'proveedor' && !f.families.length) e.families = 'Marca al menos una familia de maquinaria que alquilas.';
+      if (role === 'proveedor' && !claim && !f.families.length) e.families = 'Marca al menos una familia de maquinaria que alquilas.';
       if (!f.terms) e.terms = 'Tienes que aceptar las condiciones para crear la cuenta.';
     }
     return e;
@@ -59,11 +63,14 @@ export function Auth({ mode = 'acceso', preset }) {
     const first = Object.keys(e)[0];
     if (first) { document.getElementById(`f-${first}`)?.focus(); return; }
     setBusy(true);
-    const res = isReg ? await actions.register({ ...f, role }) : await actions.login(f.email, f.password);
+    const res = isReg ? await actions.register({ ...f, role, claimToken: role === 'proveedor' ? claim?.token : undefined }) : await actions.login(f.email, f.password);
     setBusy(false);
     if (res.error) return setMsg({ tone: 'error', text: res.error });
     if (res.info) return setMsg({ tone: 'info', text: res.info });
-    return go('/app/inicio');
+    const next = sessionStorage.getItem('maqnow-next');
+    sessionStorage.removeItem('maqnow-next');
+    sessionStorage.removeItem('maqnow-claim');
+    return go(next || '/app/inicio');
   };
   const forgot = async () => {
     if (!EMAIL_RE.test(f.email.trim())) { setErrors({ email: 'Escribe primero tu email para enviarte el enlace.' }); document.getElementById('f-email')?.focus(); return; }
@@ -91,7 +98,10 @@ export function Auth({ mode = 'acceso', preset }) {
         <p className="sub">{isReg ? <>¿Ya tienes cuenta? <a href="#/acceso">Inicia sesión</a></> : <>¿Aún no tienes cuenta? <a href="#/registro">Créala gratis</a></>}</p>
 
         <form onSubmit={submit} className="auth-form" noValidate>
-          {isReg && (
+          {claim && (
+            <p className="notice ok" role="status"><Check size={16} aria-hidden />Activa la cuenta de proveedor de <b>{claim.provider}</b>. Quedará vinculada a vuestra ficha en MAQNOW y entrarás directamente a la solicitud.</p>
+          )}
+          {isReg && !claim && (
             <div className="role-pick" role="radiogroup" aria-label="Tipo de cuenta">
               <button type="button" role="radio" aria-checked={role === 'cliente'} className={role === 'cliente' ? 'on' : ''} onClick={() => setRole('cliente')}>
                 <HardHat size={22} aria-hidden /><b>Necesito alquilar</b><small>Constructoras, instaladores, autónomos</small>
@@ -111,7 +121,7 @@ export function Auth({ mode = 'acceso', preset }) {
                 : <Field label="Provincia"><select value={f.province} onChange={set('province')} autoComplete="address-level1">{PROVINCES.map((p) => <option key={p}>{p}</option>)}</select></Field>}
             </div>
           )}
-          {isReg && role === 'proveedor' && (
+          {isReg && role === 'proveedor' && !claim && (
             <fieldset className="field">
               <legend>¿Qué maquinaria alquilas?</legend>
               <div className="chips" id="f-families" tabIndex={-1}>{FAMILIES.map((x) => <button type="button" key={x.id} aria-pressed={f.families.includes(x.id)} className={f.families.includes(x.id) ? 'on' : ''} onClick={() => toggleFam(x.id)}>{x.name}</button>)}</div>

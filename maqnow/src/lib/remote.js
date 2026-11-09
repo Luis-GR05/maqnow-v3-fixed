@@ -192,22 +192,13 @@ export async function notifyProviders(req, remind = false) {
   return data;
 }
 
-// Página pública del enlace
+// Página del enlace del email de aviso (resumen de la solicitud)
 export async function linkView(token) {
   const c = await sb();
   const { data, error } = await c.rpc('offer_link_view', { p_token: token });
   fail(error);
   return data;
 }
-export async function linkSubmit(token, o) {
-  const c = await sb();
-  const { error } = await c.rpc('offer_link_submit', {
-    p_token: token, p_availability: o.available, p_delay_days: o.delayDays || 0,
-    p_price: o.price || 0, p_transport: o.transport || 0, p_deposit: o.deposit === '' || o.deposit == null ? null : +o.deposit, p_notes: o.notes || null,
-  });
-  fail(error);
-}
-
 // Avisos en tiempo real: cualquier cambio en solicitudes, ofertas o alquileres recarga los datos
 export async function watchRemote(onChange) {
   const c = await sb();

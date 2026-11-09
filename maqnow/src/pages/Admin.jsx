@@ -264,14 +264,14 @@ function ProviderLinks({ s, r }) {
   const [copied, setCopied] = useState('');
   useEffect(() => { offerLinks(r).then(setLinks).catch((e) => setErr(e?.message || 'No se han podido cargar los enlaces.')); }, [r.remoteId, r.contacted.length]);
   const base = `${window.location.origin}${window.location.pathname}#/oferta/`;
-  const message = (name, url) => `Hola, ${name}. Tenemos una solicitud de alquiler en MAQNOW: ${itemsText(r.items)} en ${r.municipio} (${r.province}), desde el ${fmtDate(r.start)}, ${r.days} días${r.urgent ? ' (URGENTE)' : ''}. ¿La tienes disponible? Indica tu precio aquí, sin registrarte: ${url}`;
+  const message = (name, url) => `Hola, ${name}. Tenemos una solicitud de alquiler en MAQNOW: ${itemsText(r.items)} en ${r.municipio} (${r.province}), desde el ${fmtDate(r.start)}, ${r.days} días${r.urgent ? ' (URGENTE)' : ''}. Entra en tu panel de MAQNOW para ver los detalles y enviar tu oferta (si aún no tienes cuenta, la activas gratis desde el mismo enlace): ${url}`;
   const copy = (token, url) => navigator.clipboard?.writeText(url).then(() => { setCopied(token); setTimeout(() => setCopied(''), 1500); });
   const open = ['buscando', 'ofertas'].includes(r.status);
   const rows = (links || []).map((l) => ({ ...l, p: providerById(l.provider_id, s), c: r.contacted.find((x) => x.providerId === l.provider_id) }))
     .sort((a, b) => Number(!!a.c?.responded) - Number(!!b.c?.responded) || a.p.name.localeCompare(b.p.name));
   return (
     <Card title="Enviar la solicitud a los proveedores" action={<span className="muted">{r.contacted.filter((c) => c.responded).length}/{r.contacted.length} han respondido</span>}>
-      <p className="hint">Cada proveedor recibe por email su enlace personal al crearse la solicitud: lo abre, ve la petición (sin datos del cliente) y envía su precio sin crear cuenta. A los que no tienen email válido, o para insistir, envíaselo por WhatsApp desde aquí. «Reclamar» reenvía el email a los que no han respondido.</p>
+      <p className="hint">Al crearse la solicitud, cada proveedor recibe un email de aviso con su enlace personal, que le lleva a su panel para ofertar (si aún no tiene cuenta, la activa desde ese enlace, ya vinculada a su ficha). A los que no tienen email válido, o para insistir, envíaselo por WhatsApp desde aquí. «Reclamar» reenvía el email a los que no han respondido.</p>
       {err && <p className="error">{err}</p>}
       {!links && !err && <p className="muted">Cargando enlaces…</p>}
       {links && links.length === 0 && <p className="muted">Esta solicitud no se ha enviado a ningún proveedor: no hay proveedores homologados que cubran esa zona y esa maquinaria.</p>}

@@ -3,7 +3,7 @@ código en maqnow/. stack: React + Vite (JS), Supabase, lucide; fuentes Barlow. 
 páginas: Landing, Auth (cliente/proveedor/invitado), app #/app: Client, Provider, Admin; AppShell menú lateral
 roles (src/lib/roles.js + RLS supabase/schema.sql): cliente, proveedor (requiere homologación), agente comercial, administración, superadmin
 emails: supabase/functions/notify-providers (Resend) avisa a proveedores al crear solicitud y al reclamar
-db: supabase/schema.sql + seed.sql + ofertas_reales.sql (enlace #/oferta/:token para que proveedor responda sin cuenta)
+db: supabase/schema.sql + seed.sql + ofertas_reales.sql (enlace #/oferta/:token del email: lleva al panel del proveedor o activa su cuenta vinculada a su ficha; la oferta solo se envía desde el panel)
 datos: invitado = demo local (localStorage); cuenta Supabase = datos reales (src/lib/remote.js)
 env: VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY
 cmd: cd maqnow && npm run dev|build

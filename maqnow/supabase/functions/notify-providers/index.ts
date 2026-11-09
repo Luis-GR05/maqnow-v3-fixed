@@ -1,5 +1,7 @@
 // MAQNOW · notify-providers
-// Envía por email (Resend) la solicitud a cada proveedor contactado, con su enlace personal para responder.
+// Avisa por email (Resend) a cada proveedor contactado de que tiene una solicitud nueva. El email es solo
+// un aviso: el botón lleva a su panel de MAQNOW, donde envía la oferta (si aún no tiene cuenta, la activa
+// desde ese mismo enlace, vinculada a su ficha).
 //
 //   POST { request_id }                → primer aviso a los proveedores que aún no lo tienen (cliente o equipo)
 //   POST { request_id, remind: true }  → recordatorio a los que no han respondido (solo equipo MAQNOW)
@@ -48,7 +50,7 @@ export function buildEmail(r: Req, providerName: string, url: string, remind: bo
   const what = items.map((i) => i.title).join(' + ');
   const dates = `${fmtDate(r.start_date)} – ${fmtDate(addDays(r.start_date, r.days))} (${r.days} días${r.indefinite ? ', abierto hasta fin de obra' : ''})`;
   const delivery = r.delivery === 'recogida_en_proveedor' ? 'El cliente recoge en vuestra base' : 'Transporte a obra (incluidlo en el precio)';
-  const subject = `${remind ? 'Recordatorio: ' : ''}${r.urgent ? 'URGENTE · ' : ''}Solicitud de alquiler ${r.code} · ${what} en ${r.municipality}`;
+  const subject = `${remind ? 'Recordatorio: ' : ''}${r.urgent ? 'URGENTE · ' : ''}Nueva solicitud ${r.code} · ${what} en ${r.municipality}`;
   const row = (k: string, v: string) =>
     `<tr><td style="padding:6px 12px 6px 0;color:#5f6871;font-size:14px;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:6px 0;font-size:15px;font-weight:600;color:#17191c">${esc(v)}</td></tr>`;
   const html = `<!doctype html><html lang="es"><body style="margin:0;background:#eef0f1;font-family:Arial,Helvetica,sans-serif;color:#17191c">
@@ -57,22 +59,23 @@ export function buildEmail(r: Req, providerName: string, url: string, remind: bo
 <tr><td style="background:#17191c;padding:18px 24px;font-size:22px;font-weight:800;letter-spacing:.5px;color:#ffffff">MAQ<span style="color:#ffc400">NOW</span></td></tr>
 <tr><td style="padding:24px">
 <p style="margin:0 0 4px;font-size:13px;color:#5f6871">${esc(r.code)}${r.urgent ? ' · <b style="color:#b42318">URGENTE</b>' : ''}</p>
-<h1 style="margin:0 0 12px;font-size:22px;line-height:1.25">${remind ? 'Seguimos esperando vuestra oferta' : 'Nueva solicitud de alquiler'}</h1>
-<p style="margin:0 0 18px;font-size:15px;line-height:1.5">Hola, ${esc(providerName)}. Un cliente de MAQNOW necesita esta maquinaria. Indicad si la tenéis disponible y vuestro precio: el cliente compara las ofertas y elige.</p>
+<h1 style="margin:0 0 12px;font-size:22px;line-height:1.25">${remind ? 'Tenéis una solicitud pendiente de oferta' : 'Tenéis una nueva solicitud de alquiler'}</h1>
+<p style="margin:0 0 18px;font-size:15px;line-height:1.5">Hola, ${esc(providerName)}. Un cliente de MAQNOW necesita esta maquinaria en vuestra zona. Entrad en vuestro panel para ver los detalles y enviar vuestra oferta: el cliente compara las ofertas y elige.</p>
 ${items.map((i) => `<div style="background:#eef0f1;border-left:4px solid #ffc400;border-radius:6px;padding:10px 14px;margin:0 0 8px"><b style="font-size:16px">${esc(i.title)}</b>${i.sub ? `<br><span style="font-size:13px;color:#5f6871">${esc(i.sub)}</span>` : ''}</div>`).join('')}
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:12px 0 18px">
 ${row('Obra', `${r.municipality} (${r.province})`)}${row('Fechas', dates)}${row('Entrega', delivery)}${r.notes ? row('Notas', r.notes) : ''}
 </table>
-<p style="margin:0 0 22px"><a href="${esc(url)}" style="display:inline-block;background:#ffc400;color:#17191c;font-weight:700;font-size:16px;text-decoration:none;padding:13px 22px;border-radius:8px">Ver solicitud y enviar precio</a></p>
-<p style="margin:0;font-size:13px;color:#5f6871;line-height:1.5">No hace falta registrarse. El enlace es personal para vuestra empresa. La dirección exacta y el contacto en obra se comparten si el cliente elige vuestra oferta.</p>
+<p style="margin:0 0 22px"><a href="${esc(url)}" style="display:inline-block;background:#ffc400;color:#17191c;font-weight:700;font-size:16px;text-decoration:none;padding:13px 22px;border-radius:8px">Ir a mi panel y ofertar</a></p>
+<p style="margin:0;font-size:13px;color:#5f6871;line-height:1.5">¿Todavía no tenéis cuenta en MAQNOW? Desde ese mismo botón la activáis gratis en un minuto, ya vinculada a vuestra empresa. La dirección exacta y el contacto en obra se comparten si el cliente elige vuestra oferta.</p>
 </td></tr>
 <tr><td style="padding:14px 24px;border-top:1px solid #d7dbdf;font-size:12px;color:#5f6871">Recibís este email porque vuestra empresa figura como proveedor de alquiler de maquinaria en vuestra zona. Si no queréis recibir más solicitudes, contestad a este correo y os damos de baja.</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
-    `${remind ? 'Recordatorio. ' : ''}Nueva solicitud de alquiler ${r.code}${r.urgent ? ' (URGENTE)' : ''}`,
-    `Hola, ${providerName}. Un cliente de MAQNOW necesita: ${what}.`,
+    `${remind ? 'Recordatorio. ' : ''}Tenéis una nueva solicitud de alquiler en MAQNOW: ${r.code}${r.urgent ? ' (URGENTE)' : ''}`,
+    `Hola, ${providerName}. Un cliente necesita: ${what}.`,
     `Obra: ${r.municipality} (${r.province})`, `Fechas: ${dates}`, `Entrega: ${delivery}`, r.notes ? `Notas: ${r.notes}` : '',
-    '', `Ver la solicitud y enviar vuestro precio (sin registrarse): ${url}`,
+    '', `Entrad en vuestro panel para ver los detalles y enviar la oferta: ${url}`,
+    'Si aún no tenéis cuenta, desde ese enlace la activáis gratis, vinculada a vuestra empresa.',
   ].filter((x) => x !== '').join('\n');
   return { subject, html, text };
 }
