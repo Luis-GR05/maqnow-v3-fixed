@@ -3,6 +3,7 @@
 // Los registros se traducen a la misma forma que usa la demo, así las pantallas no cambian.
 import { sb } from './supabase';
 import { addDays } from './format';
+import { DOCS } from '../data/providers';
 
 const DELIVERY_IN = { transporte_incluido: 'Transporte incluido', recogida_en_proveedor: 'Recogida en proveedor' };
 const DELIVERY_OUT = { 'Transporte incluido': 'transporte_incluido', 'Recogida en proveedor': 'recogida_en_proveedor' };
@@ -65,10 +66,20 @@ function mapRental(t, req) {
   };
 }
 
+function mapMachine(m) {
+  const have = new Set((m.machine_documents || []).map((d) => d.doc_type));
+  return {
+    id: m.code, remoteId: m.id, providerId: m.provider_id, family: m.family_id, type: m.machine_type, size: m.size_label || '',
+    brand: m.brand || 'Sin marca', model: m.model || '', year: m.year, serial: m.serial_number || '', hours: m.hours, status: m.status,
+    lastMaint: m.last_maintenance, nextMaint: m.next_maintenance, lastInspection: m.last_inspection,
+    docs: Object.fromEntries(DOCS.map((d) => [d, have.has(d)])),
+  };
+}
+
 // Todo lo que el usuario puede ver según su rol (la RLS de la base de datos filtra)
 export async function loadRemote(userId) {
   const c = await sb();
-  const [profile, provs, fams, zones, internal, contacts, clients, cm, pm, sites, reqs, rentals] = await Promise.all([
+  const [profile, provs, fams, zones, internal, contacts, clients, cm, pm, sites, reqs, rentals, machines] = await Promise.all([
     c.from('profiles').select('full_name, role, active').eq('id', userId).single(),
     c.from('providers').select(PROVIDER_COLS).order('name'),
     c.from('provider_families').select('provider_id, family_id'),
@@ -81,6 +92,7 @@ export async function loadRemote(userId) {
     c.from('sites').select('*').order('created_at'),
     c.from('requests').select('*, request_items(*), request_contacts(provider_id, sent_at, responded_at), offers(*)').order('created_at', { ascending: false }).limit(300),
     c.from('rentals').select('*').order('accepted_at', { ascending: false }).limit(300),
+    c.from('machines').select('*, machine_documents(doc_type)').order('created_at').limit(1000),
   ]);
   [profile, provs, fams, zones, clients, cm, pm, sites, reqs, rentals].forEach((x) => fail(x.error));
   const group = (rows, key, val) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r[val]), a), {});
@@ -102,7 +114,7 @@ export async function loadRemote(userId) {
     providers: provs.data.map((p) => mapProvider(p, famBy, zoneBy, intBy[p.id], conBy[p.id])),
     clients: clients.data.map(mapClient),
     sites: sites.data.map((x) => ({ id: x.id, clientId: x.client_id, name: x.name, municipio: x.municipality, province: x.province, cp: x.postal_code || '' })),
-    requests, rentals: rentalList,
+    requests, rentals: rentalList, machines: (machines.data || []).map(mapMachine),
   };
 }
 
@@ -158,6 +170,26 @@ export async function acceptRemoteOffer(req, providerId) {
 export async function updateRemoteRequest(req, patch) {
   const c = await sb();
   fail((await c.from('requests').update(patch).eq('id', req.remoteId)).error);
+}
+
+// Flota del proveedor (la RLS solo deja tocar las máquinas propias)
+export async function addRemoteMachine(providerId, m) {
+  const c = await sb();
+  fail((await c.from('machines').insert({
+    provider_id: providerId, family_id: m.family, machine_type: m.type, size_label: m.size || null,
+    brand: m.brand || null, year: +m.year || new Date().getFullYear(),
+  })).error);
+}
+export async function setRemoteMachineStatus(machine, status) {
+  const c = await sb();
+  fail((await c.from('machines').update({ status }).eq('id', machine.remoteId)).error);
+}
+export async function toggleRemoteDoc(machine, doc) {
+  const c = await sb();
+  const q = machine.docs[doc]
+    ? c.from('machine_documents').delete().eq('machine_id', machine.remoteId).eq('doc_type', doc)
+    : c.from('machine_documents').insert({ machine_id: machine.remoteId, doc_type: doc });
+  fail((await q).error);
 }
 
 // Pasos del alquiler (entrega, baja, recogida): funciones de la base de datos que validan permisos y estado

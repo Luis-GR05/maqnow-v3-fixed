@@ -153,3 +153,51 @@ end $$;
 -- ---------- 5. Avisos por email (función notify-providers + Resend) ----------
 alter table public.offer_links add column if not exists notified_at timestamptz;  -- email con la solicitud enviado
 alter table public.offer_links add column if not exists reminded_at timestamptz;  -- último recordatorio por email
+
+-- ---------- 6. Envío por tipo de máquina ----------
+-- La solicitud llega a un proveedor solo si tiene ese TIPO de máquina dado de alta en su flota
+-- (misma familia y mismo tipo, p. ej. "Tijera eléctrica") para cada línea pedida.
+-- Proveedores que aún no han dado de alta ninguna máquina (los de la base inicial, que todavía
+-- no usan la plataforma): se les sigue enviando por familia, para no dejarlos fuera.
+create or replace function public.provider_can_supply(p_provider uuid, p_request uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case
+    when exists (select 1 from public.machines m where m.provider_id = p_provider) then
+      not exists (select 1 from public.request_items i
+                   where i.request_id = p_request
+                     and not exists (select 1 from public.machines m
+                                      where m.provider_id = p_provider and m.family_id = i.family_id
+                                        and lower(m.machine_type) = lower(i.machine_type)))
+    else
+      not exists (select 1 from public.request_items i
+                   where i.request_id = p_request
+                     and not exists (select 1 from public.provider_families pf where pf.provider_id = p_provider and pf.family_id = i.family_id))
+  end
+$$;
+
+create or replace function public.dispatch_request(p_request uuid, p_max integer default 30) returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  r public.requests;
+  n integer;
+begin
+  select * into r from public.requests where id = p_request;
+  if not found then raise exception 'Solicitud no encontrada'; end if;
+  if not (public.is_client_member(r.client_id) or public.has_role('agente', 'superadmin')) then
+    raise exception 'No tienes permiso sobre esta solicitud';
+  end if;
+  insert into public.request_contacts (request_id, provider_id)
+  select r.id, p.id
+    from public.providers p
+    left join public.provider_internal pi on pi.provider_id = p.id
+   where p.status = 'homologado'
+     and (p.scope = 'nacional' or exists (select 1 from public.provider_provinces z where z.provider_id = p.id and z.province = r.province))
+     and public.provider_can_supply(p.id, r.id)
+   order by p.rating * 20 + coalesce(pi.reliability, 80) desc
+   limit greatest(1, least(p_max, 30))
+  on conflict do nothing;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke execute on function public.provider_can_supply(uuid, uuid) from public, anon;
+grant execute on function public.dispatch_request(uuid, integer) to authenticated;

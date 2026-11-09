@@ -288,7 +288,7 @@ export function refreshRemote() {
     if (d.active === false) { actions.logout(); return; }
     mutate((s) => {
       if (!demoStash) demoStash = Object.fromEntries(LIVE.map((k) => [k, s[k]]));
-      Object.assign(s, { providers: d.providers, clients: d.clients, sites: d.sites, requests: d.requests, rentals: d.rentals, machines: [], incidents: [], reviews: [], favorites: [] });
+      Object.assign(s, { providers: d.providers, clients: d.clients, sites: d.sites, requests: d.requests, rentals: d.rentals, machines: d.machines, incidents: [], reviews: [], favorites: [] });
       Object.assign(s.session, { role: d.role, name: d.name || s.session.name, clientId: d.clientId, providerId: d.providerId, live: true, syncError: null });
     });
   }).catch((e) => {
@@ -540,9 +540,18 @@ export const actions = {
     mutate((s) => { const i = s.incidents.find((x) => x.id === id); i.status = status; i.resolvedAt = status === 'resuelta' ? Date.now() : null; });
   },
   saveProvider(data) { mutate((s) => { Object.assign(s.providers.find((x) => x.id === data.id), data); }); },
-  addMachine(providerId, m) { mutate((s) => { Object.assign(makeMachine(s, providerById(providerId, s), m.family, m.type, m.size), { brand: m.brand || 'Sin marca', year: +m.year || new Date().getFullYear() }); }); },
-  setMachineStatus(id, status) { mutate((s) => { s.machines.find((m) => m.id === id).status = status; }); },
-  toggleDoc(id, doc) { mutate((s) => { const m = s.machines.find((x) => x.id === id); m.docs[doc] = !m.docs[doc]; }); },
+  addMachine(providerId, m) {
+    if (isRemote()) return remote.addRemoteMachine(providerId, m).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { Object.assign(makeMachine(s, providerById(providerId, s), m.family, m.type, m.size), { brand: m.brand || 'Sin marca', year: +m.year || new Date().getFullYear() }); });
+  },
+  setMachineStatus(id, status) {
+    if (isRemote()) return remote.setRemoteMachineStatus(state.machines.find((m) => m.id === id), status).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { s.machines.find((m) => m.id === id).status = status; });
+  },
+  toggleDoc(id, doc) {
+    if (isRemote()) return remote.toggleRemoteDoc(state.machines.find((m) => m.id === id), doc).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { const m = s.machines.find((x) => x.id === id); m.docs[doc] = !m.docs[doc]; });
+  },
 
   /* equipo MAQNOW */
   remind(reqId) {
