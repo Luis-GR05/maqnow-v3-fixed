@@ -136,6 +136,9 @@ export function AppShell({ s, page, children, onAssistant }) {
 
       <aside className="app-nav" id="menu-lateral" aria-label="Menú de la aplicación">
         <div className="nav-drawer-head"><b>Menú</b><button className="nav-close" onClick={() => setDrawer(false)} aria-label="Cerrar menú"><X size={20} aria-hidden /></button></div>
+        <div className="nav-top">
+          <button className="nav-collapse" onClick={toggleCollapsed} aria-label={collapsed ? 'Ampliar el menú' : 'Reducir el menú'} aria-pressed={collapsed} title={collapsed ? 'Ampliar el menú' : 'Reducir el menú'}>{collapsed ? <PanelLeftOpen size={18} aria-hidden /> : <PanelLeftClose size={18} aria-hidden />}</button>
+        </div>
         {canNew && (
           <a className={`btn btn-primary app-new ${page === 'nueva' ? 'on' : ''}`} href="#/app/nueva" aria-current={page === 'nueva' ? 'page' : undefined} title="Nueva solicitud">
             <Plus size={18} aria-hidden /> <span>Nueva solicitud</span>
@@ -160,7 +163,6 @@ export function AppShell({ s, page, children, onAssistant }) {
         </nav>
         <div className="app-nav-foot">
           <div className="nav-org" title={who}><span aria-hidden>{(who || '?').slice(0, 1).toUpperCase()}</span><div><b>{who}</b><small>{ROLES[ss.role].label}{ss.guest ? ' · invitado' : ''}</small></div></div>
-          <button className="nav-collapse" onClick={toggleCollapsed} aria-label={collapsed ? 'Ampliar el menú' : 'Reducir el menú'} aria-pressed={collapsed} title={collapsed ? 'Ampliar el menú' : 'Reducir el menú'}>{collapsed ? <PanelLeftOpen size={18} aria-hidden /> : <PanelLeftClose size={18} aria-hidden />}</button>
         </div>
       </aside>
       <div className="app-scrim" onClick={() => setDrawer(false)} aria-hidden />

@@ -5408,6 +5408,13 @@ h3,
   display: none;
 }
 
+.nav-top {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px -2px 8px;
+  flex: none;
+}
+
 .app-new {
   width: 100%;
   height: 40px;
@@ -5636,6 +5643,11 @@ h3,
   .nav-collapsed .nav-org {
     flex: none;
   }
+
+  .nav-collapsed .nav-top {
+    justify-content: center;
+    margin-inline: 0;
+  }
 }
 
 /* --- buscador global --- */
@@ -5833,7 +5845,8 @@ h3,
     font-size: 15.5px;
   }
 
-  .nav-collapse {
+  .nav-collapse,
+  .nav-top {
     display: none;
   }
 
