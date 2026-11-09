@@ -115,14 +115,13 @@ export function Assistant({ open, onClose }) {
   const send = (e) => { e.preventDefault(); reply(text); setText(''); };
   const runAction = (a) => {
     const ss = getState().session;
-    if (!ss) actions.enterGuest('cliente');
-    else if (ss.guest && ss.role !== 'cliente') actions.switchRole('cliente');
-    else if (!ss.guest && ss.role !== 'cliente') { onClose(); return go('/app/inicio'); }
-    if (a.draft) {
-      setDraft({ items: [slotsToItem(a.draft)], municipio: a.draft.municipio, province: a.draft.province, start: a.draft.start, days: a.draft.days, step: 2 });
-      go('/app/nueva');
-    } else go(a.hash);
+    if (ss && !ss.guest && ss.role !== 'cliente') { onClose(); return go('/app/inicio'); }
+    const target = a.draft ? '/app/nueva' : a.hash.replace(/^#/, '');
+    if (a.draft) setDraft({ items: [slotsToItem(a.draft)], municipio: a.draft.municipio, province: a.draft.province, start: a.draft.start, days: a.draft.days, step: 2 });
     onClose();
+    // sin cuenta: primero se registra (o entra) y vuelve a donde iba
+    if ((!ss || ss.guest) && target.startsWith('/app')) { if (ss) actions.logout(); sessionStorage.setItem('maqnow-next', target); return go('/registro'); }
+    return go(target);
   };
   const last = msgs[msgs.length - 1];
 

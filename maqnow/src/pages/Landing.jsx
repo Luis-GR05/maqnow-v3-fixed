@@ -40,10 +40,10 @@ export function Landing({ onAssistant }) {
 
   const start = (family) => {
     const ss = getState().session;
-    if (!ss) actions.enterGuest('cliente');
-    else if (ss.guest && ss.role !== 'cliente') actions.switchRole('cliente');
-    else if (!ss.guest && ss.role !== 'cliente') return go('/app/inicio');
     if (family) setDraft({ familyPreset: family });
+    // sin cuenta: primero se registra (o entra) y vuelve a la nueva solicitud
+    if (!ss || ss.guest) { if (ss) actions.logout(); sessionStorage.setItem('maqnow-next', '/app/nueva'); return go('/registro'); }
+    if (ss.role !== 'cliente') return go('/app/inicio');
     return go('/app/nueva');
   };
   const session = getState().session;

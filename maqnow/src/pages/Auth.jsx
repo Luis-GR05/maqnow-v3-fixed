@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Logo } from '../components/Logo';
-import { ArrowLeft, HardHat, Truck, ShieldCheck, Eye, EyeOff, Check, Headset, Calculator } from 'lucide-react';
+import { ArrowLeft, HardHat, Truck, Eye, EyeOff, Check } from 'lucide-react';
 import { FAMILIES, PROVINCES } from '../data/catalog';
 import { IMG } from '../data/images';
 import { actions } from '../lib/store';
-import { supabaseEnabled } from '../lib/supabase';
 import { Field, go, srcSetFor } from '../components/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -77,7 +76,6 @@ export function Auth({ mode = 'acceso', preset }) {
     const res = await actions.resetPassword(f.email);
     setMsg({ tone: res.error ? 'error' : 'info', text: res.error || res.info });
   };
-  const guest = (r) => { actions.enterGuest(r); go('/app/inicio'); };
   // enlaza cada campo con su mensaje de error para los lectores de pantalla
   const fld = (k) => ({ id: `f-${k}`, 'aria-invalid': errors[k] ? true : undefined, 'aria-describedby': errors[k] ? `e-${k}` : undefined });
   const Err = ({ k }) => (errors[k] ? <small className="field-error" id={`e-${k}`}>{errors[k]}</small> : null);
@@ -152,19 +150,6 @@ export function Auth({ mode = 'acceso', preset }) {
           <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? 'Un momento…' : isReg ? 'Crear cuenta' : 'Entrar'}</button>
         </form>
 
-        <section className="guest" aria-labelledby="invitado">
-          <h2 id="invitado">O entra sin registrarte, como invitado</h2>
-          <div>
-            <button className="btn btn-ghost" onClick={() => guest('cliente')}><HardHat size={16} aria-hidden /> Cliente</button>
-            <button className="btn btn-ghost" onClick={() => guest('proveedor')}><Truck size={16} aria-hidden /> Proveedor</button>
-            <button className="btn btn-ghost" onClick={() => guest('agente')}><Headset size={16} aria-hidden /> Agente comercial</button>
-            <button className="btn btn-ghost" onClick={() => guest('administracion')}><Calculator size={16} aria-hidden /> Administración</button>
-            <button className="btn btn-ghost" onClick={() => guest('superadmin')}><ShieldCheck size={16} aria-hidden /> Superadmin</button>
-          </div>
-          <small>{supabaseEnabled
-            ? 'El invitado ve una empresa de ejemplo. Las cuentas registradas se guardan en el servidor.'
-            : 'El invitado ve una empresa de ejemplo. En esta demo las cuentas se guardan solo en este navegador.'}</small>
-        </section>
       </main>
     </div>
   );

@@ -166,7 +166,7 @@ export const LEGAL_DOCS = [
         `El alquiler se contrata entre el cliente y el proveedor cuya oferta acepta. ${C.brand} es un intermediario y no es parte de ese contrato: no es propietario de las máquinas ni las entrega. El proveedor responde del estado de la máquina, de su documentación, de la entrega, del servicio técnico y de la factura; el cliente, del uso correcto, del pago y de la devolución.`,
       ]],
       ['5. Cuenta de usuario', [
-        ['Los datos del registro deben ser veraces y mantenerse al día.', 'Las credenciales son personales. Quien las custodia responde del uso que se haga de la cuenta y debe avisarnos si sospecha de un acceso no autorizado.', 'El acceso como invitado sirve para probar la plataforma con datos de ejemplo y no genera solicitudes reales.'],
+        ['Los datos del registro deben ser veraces y mantenerse al día.', 'Las credenciales son personales. Quien las custodia responde del uso que se haga de la cuenta y debe avisarnos si sospecha de un acceso no autorizado.',],
       ]],
       ['6. Obligaciones del cliente', [
         ['Enviar solicitudes que respondan a una necesidad real.', 'Describir la obra y los accesos con exactitud.', 'Usar la maquinaria conforme a las instrucciones del proveedor y a la normativa de prevención.', 'Comunicar las averías y la baja por la plataforma, para que queden registradas.'],

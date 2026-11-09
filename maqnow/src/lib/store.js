@@ -260,6 +260,7 @@ function load() {
   return seed();
 }
 state = load();
+if (state.session?.guest) state.session = null; // ya no hay acceso como invitado
 if (state.session) state.session.live = false; // los datos reales se vuelven a pedir al arrancar
 let draft = null;
 const listeners = new Set();
