@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing, UserPlus, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { RotateCcw, ArrowLeft, ArrowRight, Send, Check, Clock, BellRing, UserPlus, X, Mail, MessageCircle, Copy, Link2 } from 'lucide-react';
 import { PAYMENT_METHODS, familyById } from '../data/catalog';
-import { actions, clientRisk, invoicesOf, itemsText, providerById, providerStats, rankOffers, spendByMonth, stageIndex, STAGES } from '../lib/store';
+import { actions, isRemote, clientRisk, invoicesOf, itemsText, providerById, providerStats, rankOffers, spendByMonth, stageIndex, STAGES } from '../lib/store';
 import { addDays, eur, fmtDate, fmtDay, fmtMin, monthLabel, todayISO } from '../lib/format';
 import { Badge, Bars, Card, Columns, DeliveryInfo, Empty, Field, Kpi, PageHead, Stars, Status, Stepline, Table, go } from '../components/ui';
 import { parseRequest, slotsToItem } from '../components/Assistant';
+import { offerLinks } from '../lib/remote';
 import { ROLES, STAFF, PERMISSIONS, can } from '../lib/roles';
 
 export function AdminPages({ s, page, id }) {
@@ -98,13 +99,15 @@ function Agent({ s }) {
   const [text, setText] = useState('');
   const [clientId, setClientId] = useState(s.clients[0].id);
   const [msg, setMsg] = useState('');
-  const run = (e) => {
+  const run = async (e) => {
     e.preventDefault();
     const q = parseRequest(text);
     const missing = [!q.family && 'qué máquina', !q.municipio && 'el municipio'].filter(Boolean);
     if (missing.length) return setMsg(`No he podido identificar ${missing.join(' ni ')}. Prueba con: "plataforma articulada de 16 metros para mañana en Málaga, 7 días".`);
-    const id = actions.createRequest(clientId, { items: [slotsToItem(q)], municipio: q.municipio, province: q.province, start: q.start || addDays(todayISO(), 1), days: q.days || 7, byAgent: true });
-    return go(`/app/solicitud/${id}`);
+    try {
+      const id = await actions.createRequest(clientId, { items: [slotsToItem(q)], municipio: q.municipio, province: q.province, start: q.start || addDays(todayISO(), 1), days: q.days || 7, byAgent: true });
+      return go(`/app/solicitud/${id}`);
+    } catch (x) { return setMsg(`No se ha podido crear la solicitud: ${x?.message || 'error de conexión'}`); }
   };
   const open = s.requests.filter((r) => ['buscando', 'ofertas'].includes(r.status));
   return (
@@ -241,7 +244,55 @@ function RequestLog({ s, id, role }) {
           {r.notes && <Card title="Notas del cliente"><p>{r.notes}</p></Card>}
         </div>
       </div>
+      {isRemote(s) && <ProviderLinks s={s} r={r} />}
     </>
+  );
+}
+
+/* ---------- Enlaces de respuesta para los proveedores (modo real) ---------- */
+// Cada proveedor contactado tiene un enlace personal para contestar sin cuenta.
+// Desde aquí se le envía por WhatsApp o email, o se copia.
+const phoneFor = (raw = '') => {
+  const nums = raw.split('/').map((x) => x.replace(/\D/g, '')).filter((x) => x.length >= 9);
+  const mobile = nums.find((x) => /^[67]/.test(x.slice(-9)));
+  const n = (mobile || nums[0] || '').slice(-9);
+  return n ? `34${n}` : '';
+};
+function ProviderLinks({ s, r }) {
+  const [links, setLinks] = useState(null);
+  const [err, setErr] = useState('');
+  const [copied, setCopied] = useState('');
+  useEffect(() => { offerLinks(r).then(setLinks).catch((e) => setErr(e?.message || 'No se han podido cargar los enlaces.')); }, [r.remoteId, r.contacted.length]);
+  const base = `${window.location.origin}${window.location.pathname}#/oferta/`;
+  const message = (name, url) => `Hola, ${name}. Tenemos una solicitud de alquiler en MAQNOW: ${itemsText(r.items)} en ${r.municipio} (${r.province}), desde el ${fmtDate(r.start)}, ${r.days} días${r.urgent ? ' (URGENTE)' : ''}. ¿La tienes disponible? Indica tu precio aquí, sin registrarte: ${url}`;
+  const copy = (token, url) => navigator.clipboard?.writeText(url).then(() => { setCopied(token); setTimeout(() => setCopied(''), 1500); });
+  const open = ['buscando', 'ofertas'].includes(r.status);
+  const rows = (links || []).map((l) => ({ ...l, p: providerById(l.provider_id, s), c: r.contacted.find((x) => x.providerId === l.provider_id) }))
+    .sort((a, b) => Number(!!a.c?.responded) - Number(!!b.c?.responded) || a.p.name.localeCompare(b.p.name));
+  return (
+    <Card title="Enviar la solicitud a los proveedores" action={<span className="muted">{r.contacted.filter((c) => c.responded).length}/{r.contacted.length} han respondido</span>}>
+      <p className="hint">Cada proveedor tiene su enlace personal: lo abre, ve la petición (sin datos del cliente) y envía su precio sin crear cuenta. Su oferta aparece aquí y en el comparativo del cliente al momento.</p>
+      {err && <p className="error">{err}</p>}
+      {!links && !err && <p className="muted">Cargando enlaces…</p>}
+      {links && links.length === 0 && <p className="muted">Esta solicitud no se ha enviado a ningún proveedor: no hay proveedores homologados que cubran esa zona y esa maquinaria.</p>}
+      <div className="mini-list link-list">
+        {rows.map(({ token, p, c, opened_at: openedAt }) => {
+          const url = base + token;
+          const tel = phoneFor(p.phone);
+          return (
+            <div key={token}>
+              <div><b>{p.name}</b><span>{c?.responded ? 'Ha respondido' : openedAt ? 'Ha abierto el enlace' : 'Sin respuesta'}{p.phone ? ` · ${p.phone}` : ''}{p.email ? ` · ${p.email}` : ''}</span></div>
+              {c?.responded ? <Badge tone="ok">Respondida</Badge> : open && <>
+                {tel && <a className="btn btn-ghost btn-sm" href={`https://wa.me/${tel}?text=${encodeURIComponent(message(p.name, url))}`} target="_blank" rel="noreferrer"><MessageCircle size={14} aria-hidden /> WhatsApp</a>}
+                {p.email && <a className="btn btn-ghost btn-sm" href={`mailto:${p.email}?subject=${encodeURIComponent(`Solicitud de alquiler ${r.id} · ${itemsText(r.items)}`)}&body=${encodeURIComponent(message(p.name, url))}`}><Mail size={14} aria-hidden /> Email</a>}
+                <button className="btn btn-ghost btn-sm" onClick={() => copy(token, url)}>{copied === token ? <><Check size={14} aria-hidden /> Copiado</> : <><Copy size={14} aria-hidden /> Copiar enlace</>}</button>
+                <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer" aria-label={`Abrir el enlace de ${p.name}`}><Link2 size={14} aria-hidden /></a>
+              </>}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

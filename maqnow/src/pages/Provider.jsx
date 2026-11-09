@@ -114,8 +114,8 @@ function OfferCard({ r, pid, client }) {
   const [f, setF] = useState({ available: suggested.available || 'si', price: suggested.price || '', transport: suggested.transport ?? '', deposit: suggested.deposit ?? '', delayDays: suggested.delayDays || 1, payment: suggested.payment || 'Transferencia a 30 días', notes: suggested.notes || '' });
   const send = (e) => {
     e.preventDefault();
-    actions.submitOffer(r.id, pid, { ...f, price: +f.price || 0, transport: +f.transport || 0, deposit: f.deposit === '' ? undefined : +f.deposit, delayDays: +f.delayDays });
-    setEdit(false);
+    Promise.resolve(actions.submitOffer(r.id, pid, { ...f, price: +f.price || 0, transport: +f.transport || 0, deposit: f.deposit === '' ? undefined : +f.deposit, delayDays: +f.delayDays }))
+      .then(() => setEdit(false)).catch(() => {});
   };
   return (
     <article className="card rental">

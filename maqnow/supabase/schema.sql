@@ -4,6 +4,7 @@
 -- Cómo usarlo en Supabase:
 --   1. SQL Editor → pega y ejecuta este archivo (schema.sql).
 --   2. Ejecuta después seed.sql (catálogo de maquinaria y proveedores iniciales).
+--   2b. Ejecuta ofertas_reales.sql (enlaces para que los proveedores respondan sin cuenta y tiempo real).
 --   3. Crea tu usuario desde la web y hazte superadmin (una sola vez):
 --        update public.profiles set role = 'superadmin' where email = 'tu@email.com';
 --

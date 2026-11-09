@@ -27,7 +27,7 @@ export const SECTORS = [
 ];
 
 const TITLES = {
-  acceso: 'Entrar', registro: 'Crear cuenta',
+  acceso: 'Entrar', registro: 'Crear cuenta', oferta: 'Responder solicitud',
   legal: { 'aviso-legal': 'Aviso legal', privacidad: 'Política de privacidad', cookies: 'Política de cookies', condiciones: 'Condiciones de uso' },
   cliente: { inicio: 'Inicio', nueva: 'Nueva solicitud', solicitudes: 'Solicitudes', solicitud: 'Comparativo de ofertas', ofertas: 'Ofertas', alquileres: 'Alquileres', alquiler: 'Alquiler', obras: 'Obras', entregas: 'Entregas y recogidas', averias: 'Averías', documentacion: 'Documentación', facturas: 'Facturas', favoritos: 'Maquinaria habitual', informes: 'Informes', empresa: 'Mi empresa' },
   proveedor: { inicio: 'Inicio', solicitudes: 'Solicitudes', solicitud: 'Solicitud', ofertas: 'Mis ofertas', alquileres: 'Alquileres', alquiler: 'Alquiler', flota: 'Mi maquinaria', entregas: 'Entregas y recogidas', incidencias: 'Incidencias', facturacion: 'Facturación', ficha: 'Ficha de proveedor' },

@@ -1,12 +1,13 @@
-// Estado de la demo: todo vive en el navegador (localStorage). No hay servidor.
-// Usuarios, sesiones y respuestas de proveedores son locales/simulados. Al conectar un
-// backend real (p. ej. Supabase), este archivo es la única pieza que hay que sustituir.
+// Estado de la aplicación. Modo invitado: todo vive en el navegador (localStorage) y las
+// respuestas de los proveedores se simulan. Con una cuenta de Supabase: solicitudes, ofertas y
+// alquileres se leen y escriben en la base de datos (remote.js) y los proveedores responden de verdad.
 import { useSyncExternalStore } from 'react';
 import { FAMILIES, familyById, listPrice, itemLabel } from '../data/catalog';
 import { PROVIDERS, BRANDS, DOCS } from '../data/providers';
 import { addDays, todayISO, monthKey } from './format';
 import { areaOf, isStaff, STAFF } from './roles';
 import { authMessage, sb, supabaseEnabled } from './supabase';
+import * as remote from './remote';
 
 const KEY = 'maqnow-demo-v5';
 export const MAX_CONTACTED = 30; // "hasta 30 proveedores de tu zona reciben la petición"
@@ -259,10 +260,14 @@ function load() {
   return seed();
 }
 state = load();
+if (state.session) state.session.live = false; // los datos reales se vuelven a pedir al arrancar
 let draft = null;
 const listeners = new Set();
 const emit = () => listeners.forEach((l) => l());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* sin persistencia */ } };
+// En modo real los datos de la base de datos no se guardan en el navegador: se guarda la demo
+// apartada (demoStash) junto con la sesión, y al cerrar sesión la demo vuelve tal cual estaba.
+let demoStash = null;
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(demoStash ? { ...state, ...demoStash } : state)); } catch { /* sin persistencia */ } };
 function mutate(fn) {
   const s = structuredClone(state);
   const out = fn(s);
@@ -270,6 +275,42 @@ function mutate(fn) {
   persist(); emit();
   return out;
 }
+/* ---------- modo real (Supabase) ---------- */
+const LIVE = ['providers', 'clients', 'sites', 'requests', 'rentals', 'machines', 'incidents', 'reviews', 'favorites'];
+export const isRemote = (s = state) => Boolean(supabaseEnabled && s?.session && !s.session.guest && s.session.remoteId);
+let unwatch = null, poll = null, loading = null;
+export function refreshRemote() {
+  if (!isRemote()) return Promise.resolve();
+  if (loading) return loading;
+  loading = remote.loadRemote(state.session.remoteId).then((d) => {
+    if (!isRemote()) return;
+    if (d.active === false) { actions.logout(); return; }
+    mutate((s) => {
+      if (!demoStash) demoStash = Object.fromEntries(LIVE.map((k) => [k, s[k]]));
+      Object.assign(s, { providers: d.providers, clients: d.clients, sites: d.sites, requests: d.requests, rentals: d.rentals, machines: [], incidents: [], reviews: [], favorites: [] });
+      Object.assign(s.session, { role: d.role, name: d.name || s.session.name, clientId: d.clientId, providerId: d.providerId, live: true, syncError: null });
+    });
+  }).catch((e) => {
+    if (isRemote()) mutate((s) => { s.session.syncError = e?.message || 'Sin conexión con la base de datos'; });
+  }).finally(() => { loading = null; });
+  return loading;
+}
+function startLive() {
+  if (unwatch || !isRemote()) return;
+  unwatch = () => {};
+  remote.watchRemote(() => refreshRemote()).then((stop) => { unwatch = stop; }).catch(() => {});
+  poll = setInterval(() => { if (!document.hidden) refreshRemote(); }, 20000); // por si el tiempo real no está activado
+}
+function stopLive() {
+  if (unwatch) unwatch();
+  clearInterval(poll);
+  unwatch = null; poll = null;
+  if (demoStash) { const back = demoStash; demoStash = null; mutate((s) => { Object.assign(s, back); }); }
+}
+const liveError = (e) => { window.alert(e?.message || 'No se ha podido guardar. Revisa la conexión e inténtalo de nuevo.'); throw e; };
+const reqById = (id) => state.requests.find((r) => r.id === id);
+const rentalById = (id) => state.rentals.find((r) => r.id === id);
+
 export function useStore() {
   return useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), () => state);
 }
@@ -313,7 +354,7 @@ function findOrCreateUser(s, f) {
   return user;
 }
 function openSession(s, user) {
-  s.session = { guest: false, role: user.role, userId: user.id, clientId: user.clientId, providerId: user.providerId, name: user.name, email: user.email };
+  s.session = { guest: false, role: user.role, userId: user.id, clientId: user.clientId, providerId: user.providerId, name: user.name, email: user.email, remoteId: user.remoteId };
 }
 
 /* ---------- acciones ---------- */
@@ -341,6 +382,7 @@ export const actions = {
   setGuestProvider(id) { mutate((s) => { if (s.session?.guest) s.session.providerId = id; }); },
   logout() {
     if (supabaseEnabled) sb().then((c) => c.auth.signOut()).catch(() => {});
+    stopLive();
     mutate((s) => { s.session = null; });
   },
   // Devuelve { error } o { info } (p. ej. "revisa tu correo") o {} si ha entrado
@@ -357,6 +399,7 @@ export const actions = {
         if (error) return { error: authMessage(error) };
         if (!data.session) return { info: 'Te hemos enviado un email para confirmar la cuenta. Ábrelo y vuelve para entrar.' };
         mutate((s) => { openSession(s, findOrCreateUser(s, { ...f, email, remoteId: data.user.id })); });
+        await refreshRemote(); startLive();
         return {};
       } catch (e) { return { error: authMessage(e) }; }
     }
@@ -377,6 +420,7 @@ export const actions = {
         if (profile && profile.active === false) { await c.auth.signOut(); return { error: 'Tu cuenta está desactivada. Habla con MAQNOW.' }; }
         const meta = data.user.user_metadata || {};
         mutate((s) => { openSession(s, findOrCreateUser(s, { name: profile?.full_name || meta.full_name || email, company: meta.company || email, cif: meta.cif, phone: meta.phone, province: meta.province, families: meta.families, role: profile?.role || meta.role || 'cliente', email, remoteId: data.user.id })); });
+        await refreshRemote(); startLive();
         return {};
       } catch (e) { return { error: authMessage(e) }; }
     }
@@ -410,16 +454,38 @@ export const actions = {
   approveProvider(id) { mutate((s) => { s.providers.find((p) => p.id === id).status = 'homologado'; }); },
 
   /* cliente */
-  saveClient(data) { mutate((s) => { Object.assign(s.clients.find((x) => x.id === data.id), data); }); },
+  saveClient(data) {
+    if (isRemote()) remote.saveRemoteClient(data).catch(() => {});
+    mutate((s) => { Object.assign(s.clients.find((x) => x.id === data.id), data); });
+  },
   addSite(clientId, data) { return mutate((s) => siteFor(s, clientId, { ...data, siteName: data.name })); },
-  createRequest(clientId, data) { return mutate((s) => makeRequest(s, { ...data, clientId }).id); },
+  // Devuelve el código de la solicitud (en modo real, una promesa)
+  createRequest(clientId, data) {
+    if (isRemote()) return remote.createRemoteRequest(state, clientId, data).then(async (code) => { await refreshRemote(); return code; });
+    return mutate((s) => makeRequest(s, { ...data, clientId }).id);
+  },
   markViewed(id) {
     const r = state.requests.find((x) => x.id === id);
-    if (r && !r.viewedAt && r.offers.length) mutate((s) => { s.requests.find((x) => x.id === id).viewedAt = Date.now(); });
+    if (!r || r.viewedAt || !r.offers.length) return;
+    if (isRemote() && state.session.role === 'cliente') remote.updateRemoteRequest(r, { viewed_at: new Date().toISOString() }).catch(() => {});
+    mutate((s) => { s.requests.find((x) => x.id === id).viewedAt = Date.now(); });
   },
-  cancelRequest(id) { mutate((s) => { s.requests.find((r) => r.id === id).status = 'cancelada'; }); },
-  acceptOffer(reqId, providerId) { return mutate((s) => makeRental(s, s.requests.find((r) => r.id === reqId), providerId).id); },
-  requestBaja(id, date) { mutate((s) => { const r = s.rentals.find((x) => x.id === id); r.status = 'baja solicitada'; r.bajaDate = date; }); },
+  cancelRequest(id) {
+    if (isRemote()) return remote.updateRemoteRequest(reqById(id), { status: 'cancelada' }).then(refreshRemote, liveError);
+    mutate((s) => { s.requests.find((r) => r.id === id).status = 'cancelada'; });
+  },
+  // Devuelve el código del alquiler (en modo real, una promesa)
+  acceptOffer(reqId, providerId) {
+    if (isRemote()) {
+      return remote.acceptRemoteOffer(reqById(reqId), providerId).then(refreshRemote)
+        .then(() => state.rentals.find((t) => t.requestId === reqId)?.id, liveError);
+    }
+    return mutate((s) => makeRental(s, s.requests.find((r) => r.id === reqId), providerId).id);
+  },
+  requestBaja(id, date) {
+    if (isRemote()) return remote.rentalRpc('request_baja', rentalById(id), { p_date: date }).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { const r = s.rentals.find((x) => x.id === id); r.status = 'baja solicitada'; r.bajaDate = date; });
+  },
   reviewRental(id, stars) {
     mutate((s) => { const r = s.rentals.find((x) => x.id === id); r.review = stars; s.reviews.push({ providerId: r.providerId, rentalId: id, stars }); });
   },
@@ -436,6 +502,7 @@ export const actions = {
 
   /* proveedor */
   submitOffer(reqId, providerId, o) {
+    if (isRemote()) return remote.submitRemoteOffer(reqById(reqId), providerId, o).then(refreshRemote, liveError);
     mutate((s) => {
       const r = s.requests.find((x) => x.id === reqId);
       const c = r.contacted.find((x) => x.providerId === providerId);
@@ -453,8 +520,14 @@ export const actions = {
       if (r.status === 'buscando') r.status = 'ofertas';
     });
   },
-  setRentalStatus(id, status) { mutate((s) => { s.rentals.find((r) => r.id === id).status = status; }); },
-  confirmPickup(id) { mutate((s) => { const r = s.rentals.find((x) => x.id === id); r.end = r.bajaDate || todayISO(); finishRental(s, r); }); },
+  setRentalStatus(id, status) {
+    if (isRemote() && status === 'en alquiler') return remote.rentalRpc('confirm_delivery', rentalById(id)).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { s.rentals.find((r) => r.id === id).status = status; });
+  },
+  confirmPickup(id) {
+    if (isRemote()) return remote.rentalRpc('confirm_pickup', rentalById(id)).then(refreshRemote, liveError).catch(() => {});
+    mutate((s) => { const r = s.rentals.find((x) => x.id === id); r.end = r.bajaDate || todayISO(); finishRental(s, r); });
+  },
   setIncidentStatus(id, status) {
     mutate((s) => { const i = s.incidents.find((x) => x.id === id); i.status = status; i.resolvedAt = status === 'resuelta' ? Date.now() : null; });
   },
@@ -599,8 +672,12 @@ export async function initAuth() {
   try {
     const c = await sb();
     const { data } = await c.auth.getSession();
-    const drop = () => { if (state.session && !state.session.guest) mutate((s) => { s.session = null; }); };
+    const drop = () => { if (state.session && !state.session.guest) { stopLive(); mutate((s) => { s.session = null; }); } };
     if (!data.session) drop();
+    else if (state.session && !state.session.guest) {
+      if (!state.session.remoteId) mutate((s) => { s.session.remoteId = data.session.user.id; });
+      await refreshRemote(); startLive();
+    }
     c.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') drop(); });
   } catch { /* sin conexión: se mantiene la sesión local */ }
 }

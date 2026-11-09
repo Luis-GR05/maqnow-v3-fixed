@@ -23,6 +23,7 @@ export function RequestWizard({ s, clientId, onAssistant }) {
   });
   const [company, setCompany] = useState({ id: profile.id, name: profile.name, cif: profile.cif, contact: profile.contact, phone: profile.phone, email: profile.email });
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const fam = cur.family ? familyById(cur.family) : null;
   const curReady = fam && cur.type && cur.specs[fam.fields[0].id];
@@ -55,12 +56,19 @@ export function RequestWizard({ s, clientId, onAssistant }) {
     window.scrollTo(0, 0);
     return null;
   };
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (busy) return null;
     if (!company.name.trim() || !company.phone.trim()) return setErr('Necesitamos al menos la razón social y un teléfono de contacto.');
-    actions.saveClient(company);
-    const id = actions.createRequest(clientId, { ...site, days: +site.days, items });
-    return go(`/app/solicitud/${id}`);
+    setBusy(true);
+    try {
+      actions.saveClient(company);
+      const id = await actions.createRequest(clientId, { ...site, days: +site.days, items });
+      return go(`/app/solicitud/${id}`);
+    } catch (x) {
+      setBusy(false);
+      return setErr(`No se ha podido enviar la solicitud: ${x?.message || 'revisa la conexión e inténtalo de nuevo.'}`);
+    }
   };
 
   return (
@@ -188,7 +196,7 @@ export function RequestWizard({ s, clientId, onAssistant }) {
         <span className="reach">{reach > 0 && 'Pediremos oferta a todos los proveedores de tu zona que tienen esta maquinaria'}</span>
         {step < 3
           ? <button key="next" type="button" className="btn btn-primary" onClick={next}>Continuar <ArrowRight size={16} /></button>
-          : <button key="send" type="submit" className="btn btn-primary btn-lg" form="company-form">Solicitar ofertas</button>}
+          : <button key="send" type="submit" className="btn btn-primary btn-lg" form="company-form" disabled={busy}>{busy ? 'Enviando…' : 'Solicitar ofertas'}</button>}
       </div>
     </div>
   );

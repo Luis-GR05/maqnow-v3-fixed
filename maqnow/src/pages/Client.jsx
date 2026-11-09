@@ -162,7 +162,7 @@ function RequestDetail({ s, id, requests }) {
   const tagOf = (o, i) => (i === 0 && !showAll ? 'Recomendada' : tags[o.providerId]);
   const maxTotal = Math.max(1, ...top.map((o) => o.total));
   const rental = s.rentals.find((r) => r.requestId === req.id);
-  const accept = (o) => go(`/app/alquiler/${actions.acceptOffer(req.id, o.providerId)}`);
+  const accept = (o) => Promise.resolve(actions.acceptOffer(req.id, o.providerId)).then((id) => go(id ? `/app/alquiler/${id}` : '/app/alquileres')).catch(() => {});
   const cmpRows = [
     ['Disponibilidad', (o) => (o.available === 'si' ? <Badge tone="ok">Confirmada</Badge> : <Badge tone="warn">Con retraso</Badge>)],
     ['Entrega', (o) => fmtDay(o.deliveryDate)],
@@ -257,7 +257,7 @@ function RequestDetail({ s, id, requests }) {
 
           <div className="cmp-foot">
             {ranked.length > TOP_OFFERS && <button className="btn btn-ghost" onClick={() => setShowAll(!showAll)}>{showAll ? 'Ver solo las 5 mejores' : `Ver las ${ranked.length} ofertas`}</button>}
-            {open && <button className="btn btn-ghost danger" onClick={() => { actions.cancelRequest(req.id); go('/app/solicitudes'); }}>Cancelar solicitud</button>}
+            {open && <button className="btn btn-ghost danger" onClick={() => Promise.resolve(actions.cancelRequest(req.id)).then(() => go('/app/solicitudes')).catch(() => {})}>Cancelar solicitud</button>}
             <span className="contact-inline">¿Dudas? <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}><Phone size={14} /> Llamar</a> <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noreferrer"><MessageCircle size={14} /> WhatsApp</a> <a href={`mailto:${CONTACT.email}?subject=${req.id}`}><Mail size={14} /> Email</a></span>
           </div>
         </>

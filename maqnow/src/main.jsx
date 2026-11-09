@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MessageCircle } from 'lucide-react';
+import { CloudOff, MessageCircle } from 'lucide-react';
 // Tipografías alojadas en la propia web (solo el juego de caracteres latino): sin terceros ni bloqueo del pintado
 import '@fontsource/barlow/latin-400.css';
 import '@fontsource/barlow/latin-500.css';
@@ -10,10 +10,10 @@ import '@fontsource/barlow-condensed/latin-600.css';
 import '@fontsource/barlow-condensed/latin-700.css';
 import '@fontsource/barlow-condensed/latin-800.css';
 import './styles.css';
-import { actions, initAuth, useStore } from './lib/store';
+import { actions, initAuth, isRemote, refreshRemote, useStore } from './lib/store';
 import { ROLES, areaOf, canOpen } from './lib/roles';
 import { isKnownPage, pageTitle } from './data/site';
-import { ErrorBoundary, Loading, NoAccess, NotFound, OfflineBar } from './components/Screens';
+import { ErrorBoundary, ErrorScreen, Loading, NoAccess, NotFound, OfflineBar } from './components/Screens';
 import { Landing } from './pages/Landing';
 
 // La web pública carga de inmediato; el área privada, el acceso y el asistente se descargan
@@ -22,6 +22,7 @@ const AppShell = lazy(() => import('./components/AppShell').then((m) => ({ defau
 const Auth = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Auth })));
 const Assistant = lazy(() => import('./components/Assistant').then((m) => ({ default: m.Assistant })));
 const Legal = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Legal })));
+const OfferLink = lazy(() => import('./pages/OfferLink').then((m) => ({ default: m.OfferLink })));
 const CookieBanner = lazy(() => import('./components/CookieBanner').then((m) => ({ default: m.CookieBanner })));
 const AREAS = {
   cliente: lazy(() => import('./pages/Client').then((m) => ({ default: m.ClientPages }))),
@@ -84,7 +85,12 @@ function App() {
   }, [section, a, b, area]);
 
   let view;
-  if (isApp) {
+  if (isApp && isRemote(s) && !s.session.live) {
+    // Cuenta real: primero se cargan los datos de la base de datos
+    view = s.session.syncError
+      ? <ErrorScreen page icon={CloudOff} title="No hemos podido cargar tus datos" actions={<><button className="btn btn-primary" onClick={() => refreshRemote()}>Reintentar</button><button className="btn btn-ghost" onClick={() => actions.logout()}>Cerrar sesión</button></>}>{s.session.syncError}</ErrorScreen>
+      : <Loading full label="Cargando tus datos" />;
+  } else if (isApp) {
     const Pages = AREAS[area];
     view = (
       <AppShell s={s} page={page} onAssistant={openAssistant}>
@@ -97,6 +103,8 @@ function App() {
     );
   } else if (isAuth) {
     view = <Auth key={section + (a || '')} mode={section} preset={a} />;
+  } else if (section === 'oferta' && a) {
+    view = <OfferLink token={a} />;
   } else if (isLegal) {
     view = <Legal doc={a} />;
   } else if (needsLogin) {

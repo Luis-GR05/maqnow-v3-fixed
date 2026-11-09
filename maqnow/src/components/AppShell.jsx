@@ -94,7 +94,7 @@ export function AppShell({ s, page, children, onAssistant }) {
         </button>
 
         <div className="app-actions">
-          <span className="demo-pill" title="Precios, valoraciones y respuestas de proveedores son simulados">Demo</span>
+          {!ss.live && <span className="demo-pill" title="Precios, valoraciones y respuestas de proveedores son simulados">Demo</span>}
           <button className="app-ico app-ico-search" onClick={() => setOpen('search')} aria-label="Buscar"><Search size={20} aria-hidden /></button>
           <button className="app-ico" onClick={onAssistant} aria-label="Abrir asistente" title="Asistente"><MessageCircle size={20} aria-hidden /></button>
           <div className="app-pop-wrap">
