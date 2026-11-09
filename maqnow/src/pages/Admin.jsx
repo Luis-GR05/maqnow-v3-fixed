@@ -271,17 +271,17 @@ function ProviderLinks({ s, r }) {
     .sort((a, b) => Number(!!a.c?.responded) - Number(!!b.c?.responded) || a.p.name.localeCompare(b.p.name));
   return (
     <Card title="Enviar la solicitud a los proveedores" action={<span className="muted">{r.contacted.filter((c) => c.responded).length}/{r.contacted.length} han respondido</span>}>
-      <p className="hint">Cada proveedor tiene su enlace personal: lo abre, ve la petición (sin datos del cliente) y envía su precio sin crear cuenta. Su oferta aparece aquí y en el comparativo del cliente al momento.</p>
+      <p className="hint">Cada proveedor recibe por email su enlace personal al crearse la solicitud: lo abre, ve la petición (sin datos del cliente) y envía su precio sin crear cuenta. A los que no tienen email válido, o para insistir, envíaselo por WhatsApp desde aquí. «Reclamar» reenvía el email a los que no han respondido.</p>
       {err && <p className="error">{err}</p>}
       {!links && !err && <p className="muted">Cargando enlaces…</p>}
       {links && links.length === 0 && <p className="muted">Esta solicitud no se ha enviado a ningún proveedor: no hay proveedores homologados que cubran esa zona y esa maquinaria.</p>}
       <div className="mini-list link-list">
-        {rows.map(({ token, p, c, opened_at: openedAt }) => {
+        {rows.map(({ token, p, c, opened_at: openedAt, notified_at: notifiedAt, reminded_at: remindedAt }) => {
           const url = base + token;
           const tel = phoneFor(p.phone);
           return (
             <div key={token}>
-              <div><b>{p.name}</b><span>{c?.responded ? 'Ha respondido' : openedAt ? 'Ha abierto el enlace' : 'Sin respuesta'}{p.phone ? ` · ${p.phone}` : ''}{p.email ? ` · ${p.email}` : ''}</span></div>
+              <div><b>{p.name}</b><span>{c?.responded ? 'Ha respondido' : openedAt ? 'Ha abierto el enlace' : 'Sin respuesta'}{remindedAt ? ' · recordatorio enviado' : notifiedAt ? ' · email enviado' : ' · sin email enviado'}{p.phone ? ` · ${p.phone}` : ''}{p.email ? ` · ${p.email}` : ''}</span></div>
               {c?.responded ? <Badge tone="ok">Respondida</Badge> : open && <>
                 {tel && <a className="btn btn-ghost btn-sm" href={`https://wa.me/${tel}?text=${encodeURIComponent(message(p.name, url))}`} target="_blank" rel="noreferrer"><MessageCircle size={14} aria-hidden /> WhatsApp</a>}
                 {p.email && <a className="btn btn-ghost btn-sm" href={`mailto:${p.email}?subject=${encodeURIComponent(`Solicitud de alquiler ${r.id} · ${itemsText(r.items)}`)}&body=${encodeURIComponent(message(p.name, url))}`}><Mail size={14} aria-hidden /> Email</a>}

@@ -461,7 +461,14 @@ export const actions = {
   addSite(clientId, data) { return mutate((s) => siteFor(s, clientId, { ...data, siteName: data.name })); },
   // Devuelve el código de la solicitud (en modo real, una promesa)
   createRequest(clientId, data) {
-    if (isRemote()) return remote.createRemoteRequest(state, clientId, data).then(async (code) => { await refreshRemote(); return code; });
+    if (isRemote()) {
+      return remote.createRemoteRequest(state, clientId, data).then(async (code) => {
+        await refreshRemote();
+        const req = reqById(code);
+        if (req) remote.notifyProviders(req).catch(() => {}); // email a los proveedores; si falla, el equipo los avisa desde el panel
+        return code;
+      });
+    }
     return mutate((s) => makeRequest(s, { ...data, clientId }).id);
   },
   markViewed(id) {
@@ -537,7 +544,15 @@ export const actions = {
   toggleDoc(id, doc) { mutate((s) => { const m = s.machines.find((x) => x.id === id); m.docs[doc] = !m.docs[doc]; }); },
 
   /* equipo MAQNOW */
-  remind(reqId) { mutate((s) => { s.requests.find((r) => r.id === reqId).remindedAt = Date.now(); }); },
+  remind(reqId) {
+    if (isRemote()) {
+      return remote.notifyProviders(reqById(reqId), true).then((res) => {
+        refreshRemote();
+        window.alert(res?.sent ? `Recordatorio enviado por email a ${res.sent} proveedores.${res.skipped ? ` ${res.skipped} sin email válido: avísales por WhatsApp.` : ''}` : 'No hay proveedores pendientes a los que recordar por email.');
+      }, liveError).catch(() => {});
+    }
+    mutate((s) => { s.requests.find((r) => r.id === reqId).remindedAt = Date.now(); });
+  },
   settleCommission(id) { mutate((s) => { s.rentals.find((r) => r.id === id).commissionStatus = 'liquidada'; }); },
   markPaid(id) { mutate((s) => { s.rentals.find((r) => r.id === id).paid = true; }); },
   setAutoRespond(v) { mutate((s) => { s.settings.autoRespond = v; }); },

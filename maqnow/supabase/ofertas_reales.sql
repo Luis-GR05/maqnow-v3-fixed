@@ -141,3 +141,7 @@ begin
   end loop;
 exception when undefined_object then null;  -- sin publicación de tiempo real: la web recarga cada 20 s
 end $$;
+
+-- ---------- 5. Avisos por email (función notify-providers + Resend) ----------
+alter table public.offer_links add column if not exists notified_at timestamptz;  -- email con la solicitud enviado
+alter table public.offer_links add column if not exists reminded_at timestamptz;  -- último recordatorio por email

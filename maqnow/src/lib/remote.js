@@ -174,8 +174,21 @@ export async function saveRemoteClient(data) {
 // Enlaces de respuesta de cada proveedor contactado (solo el equipo MAQNOW los puede leer)
 export async function offerLinks(req) {
   const c = await sb();
-  const { data, error } = await c.from('offer_links').select('token, provider_id, opened_at').eq('request_id', req.remoteId);
+  const { data, error } = await c.from('offer_links').select('token, provider_id, opened_at, notified_at, reminded_at').eq('request_id', req.remoteId);
   fail(error);
+  return data;
+}
+
+// Email a los proveedores con su enlace (función notify-providers + Resend).
+// remind: recordatorio a los que no han respondido (solo equipo MAQNOW).
+export async function notifyProviders(req, remind = false) {
+  const c = await sb();
+  const { data, error } = await c.functions.invoke('notify-providers', { body: { request_id: req.remoteId, remind } });
+  if (error) {
+    let msg = error.message;
+    try { msg = (await error.context.json()).error || msg; } catch { /* sin detalle */ }
+    throw new Error(`Email no enviado: ${msg}`);
+  }
   return data;
 }
 
